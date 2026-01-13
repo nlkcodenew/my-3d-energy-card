@@ -37,12 +37,12 @@ Thẻ năng lượng 3D đẹp mắt cho Home Assistant với dòng chảy năng
 
 ### Manual
 
-1. Download `hiasm-energy-card.js` from the latest release
-2. Copy to `/config/www/hiasm-energy-card.js`
+1. Download `my-3d-energy-card.js` from the latest release
+2. Copy to `/config/www/my-3d-energy-card.js`
 3. Add to Lovelace resources:
    ```yaml
    resources:
-     - url: /local/hiasm-energy-card.js
+     - url: /local/my-3d-energy-card.js
        type: module
    ```
 
@@ -53,7 +53,7 @@ Thẻ năng lượng 3D đẹp mắt cho Home Assistant với dòng chảy năng
 ### Basic / Cơ bản
 
 ```yaml
-type: custom:hiasm-energy-card
+type: custom:my-3d-energy-card
 max_power: 5000
 language: vi
 entities:
@@ -74,7 +74,7 @@ entities:
 ### Full Options / Đầy đủ
 
 ```yaml
-type: custom:hiasm-energy-card
+type: custom:my-3d-energy-card
 max_power: 5000
 language: vi  # en | vi
 dots_per_line: 3  # 1-5 dots per flow line

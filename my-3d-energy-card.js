@@ -12,7 +12,7 @@ import {
 const CARD_VERSION = "1.0.1";
 
 console.info(
-  `%c HIASM ENERGY CARD %c ${CARD_VERSION} `,
+  `%c MY 3D ENERGY CARD %c ${CARD_VERSION} `,
   "color: white; background: #00f3ff; font-weight: 700;",
   "color: #00f3ff; background: #222;"
 );
@@ -30,7 +30,7 @@ const DEFAULT_COLORS = {
   inverter: "#a855f7"
 };
 
-class HiasmEnergyCard extends LitElement {
+class My3DEnergyCard extends LitElement {
   static get properties() { return { hass: { type: Object }, config: { type: Object } }; }
 
   static getStubConfig() {
@@ -43,7 +43,7 @@ class HiasmEnergyCard extends LitElement {
     };
   }
 
-  static getConfigElement() { return document.createElement("hiasm-energy-card-editor"); }
+  static getConfigElement() { return document.createElement("my-3d-energy-card-editor"); }
 
   constructor() {
     super();
@@ -433,6 +433,6 @@ class HiasmEnergyCardEditor extends LitElement {
   }
   _i(l, k, v, s = false, type = "text") { return html`<div class="row"><label>${l}</label><input type="${type}" .value="${v || ''}" .configValue=${s ? undefined : k} .subValue=${s ? k : undefined} @input=${this._val}></div>`; }
 }
-customElements.define("hiasm-energy-card-editor", HiasmEnergyCardEditor);
+customElements.define("my-3d-energy-card-editor", My3DEnergyCardEditor);
 window.customCards = window.customCards || [];
-window.customCards.push({ type: "hiasm-energy-card", name: "HIASM Energy Card", preview: true, description: "3D Energy Monitor with Animated Flows" });
+window.customCards.push({ type: "my-3d-energy-card", name: "My 3D Energy Card", preview: true, description: "3D Energy Monitor with Animated Flows" });
