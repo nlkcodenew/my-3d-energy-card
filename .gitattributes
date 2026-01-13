@@ -1,0 +1,11 @@
+# Line endings
+* text=auto
+
+# Force LF for web files
+*.js   text eol=lf
+*.json text eol=lf
+*.md   text eol=lf
+
+# Binary
+*.png binary
+*.jpg binary
