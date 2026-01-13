@@ -9,7 +9,7 @@ import {
   css,
 } from "https://unpkg.com/lit-element@2.4.0/lit-element.js?module";
 
-const CARD_VERSION = "3.2.2";
+const CARD_VERSION = "3.3.3";
 
 console.info(
   `%c HIASM ENERGY CARD %c ${CARD_VERSION} `,
@@ -297,31 +297,19 @@ class HiasmEnergyCard extends LitElement {
         top: 0; left: 0; width: 100%; height: 100%;
         pointer-events: none;
         z-index: 3;
+        overflow: visible;
       }
 
       path.wire {
         fill: none;
-        stroke: rgba(255,255,255,0.08);
-        stroke-width: 3;
-      }
-
-      /* ELECTRIC FLOW EFFECT */
-      path.flow {
-        fill: none;
-        stroke-width: 5;
+        stroke: rgba(255,255,255,0.15);
+        stroke-width: 4;
         stroke-linecap: round;
-        stroke-dasharray: 12 8;
-        opacity: 0.9;
       }
 
-      /* Flow animations */
-      .flow-active {
-        animation: flow-move var(--flow-speed, 1s) linear infinite;
-      }
-
-      @keyframes flow-move {
-        0% { stroke-dashoffset: 20; }
-        100% { stroke-dashoffset: 0; }
+      /* Energy Packet Styling */
+      .energy-packet {
+        opacity: 0.95;
       }
     `;
   }
@@ -404,75 +392,85 @@ class HiasmEnergyCard extends LitElement {
           <!-- SVG Connection Lines -->
           <svg class="connections">
             <defs>
-              <linearGradient id="grad-solar" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stop-color="var(--neon-yellow)" stop-opacity="1"/>
-                <stop offset="100%" stop-color="var(--neon-yellow)" stop-opacity="0.3"/>
-              </linearGradient>
-              <linearGradient id="grad-grid" x1="100%" y1="0%" x2="0%" y2="100%">
-                <stop offset="0%" stop-color="var(--neon-blue)" stop-opacity="1"/>
-                <stop offset="100%" stop-color="var(--neon-blue)" stop-opacity="0.3"/>
-              </linearGradient>
-              <linearGradient id="grad-bat" x1="0%" y1="100%" x2="100%" y2="0%">
-                <stop offset="0%" stop-color="var(--neon-green)" stop-opacity="1"/>
-                <stop offset="100%" stop-color="var(--neon-green)" stop-opacity="0.3"/>
-              </linearGradient>
-              <linearGradient id="grad-load" x1="100%" y1="100%" x2="0%" y2="0%">
-                <stop offset="0%" stop-color="var(--neon-red)" stop-opacity="1"/>
-                <stop offset="100%" stop-color="var(--neon-red)" stop-opacity="0.3"/>
-              </linearGradient>
-              
-              <!-- Glow filters -->
-              <filter id="glow-yellow" x="-50%" y="-50%" width="200%" height="200%">
-                <feGaussianBlur stdDeviation="3" result="blur"/>
-                <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+              <!-- Glow filters with stronger blur -->
+              <filter id="glow-yellow" x="-100%" y="-100%" width="300%" height="300%">
+                <feGaussianBlur stdDeviation="4" result="blur"/>
+                <feMerge><feMergeNode in="blur"/><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
               </filter>
-              <filter id="glow-blue" x="-50%" y="-50%" width="200%" height="200%">
-                <feGaussianBlur stdDeviation="3" result="blur"/>
-                <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+              <filter id="glow-blue" x="-100%" y="-100%" width="300%" height="300%">
+                <feGaussianBlur stdDeviation="4" result="blur"/>
+                <feMerge><feMergeNode in="blur"/><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
               </filter>
-              <filter id="glow-green" x="-50%" y="-50%" width="200%" height="200%">
-                <feGaussianBlur stdDeviation="3" result="blur"/>
-                <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+              <filter id="glow-green" x="-100%" y="-100%" width="300%" height="300%">
+                <feGaussianBlur stdDeviation="4" result="blur"/>
+                <feMerge><feMergeNode in="blur"/><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
               </filter>
-              <filter id="glow-red" x="-50%" y="-50%" width="200%" height="200%">
-                <feGaussianBlur stdDeviation="3" result="blur"/>
-                <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+              <filter id="glow-red" x="-100%" y="-100%" width="300%" height="300%">
+                <feGaussianBlur stdDeviation="4" result="blur"/>
+                <feMerge><feMergeNode in="blur"/><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
               </filter>
             </defs>
 
-            <!-- Static wire paths (background) -->
+            <!-- Static wire paths (thicker) -->
             <path id="w-solar" class="wire" d="" />
             <path id="w-grid" class="wire" d="" />
             <path id="w-bat" class="wire" d="" />
             <path id="w-load" class="wire" d="" />
 
-            <!-- Animated flow paths with solid colors -->
+            <!-- Energy Packets - Solar (Yellow bullets) -->
             ${solarP > 10 ? html`
-              <path id="f-solar" class="flow flow-active" 
-                    stroke="var(--neon-yellow)" 
-                    style="--flow-speed: ${getDur(solarP)}s"
-                    d="" />
+              <circle class="energy-packet" r="6" fill="var(--neon-yellow)" filter="url(#glow-yellow)">
+                <animateMotion dur="${getDur(solarP)}s" repeatCount="indefinite">
+                  <mpath href="#w-solar"/>
+                </animateMotion>
+              </circle>
+              <circle class="energy-packet" r="6" fill="var(--neon-yellow)" filter="url(#glow-yellow)">
+                <animateMotion dur="${getDur(solarP)}s" repeatCount="indefinite" begin="${getDur(solarP) / 2}s">
+                  <mpath href="#w-solar"/>
+                </animateMotion>
+              </circle>
             ` : ''}
 
+            <!-- Energy Packets - Grid (Blue bullets) -->
             ${Math.abs(gridP) > 10 ? html`
-              <path id="f-grid" class="flow flow-active" 
-                    stroke="var(--neon-blue)"
-                    style="--flow-speed: ${getDur(gridP)}s"
-                    d="" />
+              <circle class="energy-packet" r="6" fill="var(--neon-blue)" filter="url(#glow-blue)">
+                <animateMotion dur="${getDur(gridP)}s" repeatCount="indefinite" keyPoints="${isGridImport ? '0;1' : '1;0'}" keyTimes="0;1" calcMode="linear">
+                  <mpath href="#w-grid"/>
+                </animateMotion>
+              </circle>
+              <circle class="energy-packet" r="6" fill="var(--neon-blue)" filter="url(#glow-blue)">
+                <animateMotion dur="${getDur(gridP)}s" repeatCount="indefinite" begin="${getDur(gridP) / 2}s" keyPoints="${isGridImport ? '0;1' : '1;0'}" keyTimes="0;1" calcMode="linear">
+                  <mpath href="#w-grid"/>
+                </animateMotion>
+              </circle>
             ` : ''}
 
+            <!-- Energy Packets - Battery (Green bullets) -->
             ${Math.abs(batP) > 10 ? html`
-              <path id="f-bat" class="flow flow-active" 
-                    stroke="var(--neon-green)"
-                    style="--flow-speed: ${getDur(batP)}s"
-                    d="" />
+              <circle class="energy-packet" r="6" fill="var(--neon-green)" filter="url(#glow-green)">
+                <animateMotion dur="${getDur(batP)}s" repeatCount="indefinite" keyPoints="${isBatCharge ? '1;0' : '0;1'}" keyTimes="0;1" calcMode="linear">
+                  <mpath href="#w-bat"/>
+                </animateMotion>
+              </circle>
+              <circle class="energy-packet" r="6" fill="var(--neon-green)" filter="url(#glow-green)">
+                <animateMotion dur="${getDur(batP)}s" repeatCount="indefinite" begin="${getDur(batP) / 2}s" keyPoints="${isBatCharge ? '1;0' : '0;1'}" keyTimes="0;1" calcMode="linear">
+                  <mpath href="#w-bat"/>
+                </animateMotion>
+              </circle>
             ` : ''}
 
+            <!-- Energy Packets - Load (Red bullets) -->
             ${loadP > 10 ? html`
-              <path id="f-load" class="flow flow-active" 
-                    stroke="var(--neon-red)"
-                    style="--flow-speed: ${getDur(loadP)}s"
-                    d="" />
+              <circle class="energy-packet" r="6" fill="var(--neon-red)" filter="url(#glow-red)">
+                <animateMotion dur="${getDur(loadP)}s" repeatCount="indefinite" keyPoints="1;0" keyTimes="0;1" calcMode="linear">
+                  <mpath href="#w-load"/>
+                </animateMotion>
+              </circle>
+              <circle class="energy-packet" r="6" fill="var(--neon-red)" filter="url(#glow-red)">
+                <animateMotion dur="${getDur(loadP)}s" repeatCount="indefinite" begin="${getDur(loadP) / 2}s" keyPoints="1;0" keyTimes="0;1" calcMode="linear">
+                  <mpath href="#w-load"/>
+                </animateMotion>
+              </circle>
             ` : ''}
           </svg>
 
