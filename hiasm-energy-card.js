@@ -9,7 +9,7 @@ import {
   css,
 } from "https://unpkg.com/lit-element@2.4.0/lit-element.js?module";
 
-const CARD_VERSION = "3.3.7";
+const CARD_VERSION = "3.3.8";
 
 console.info(
   `%c HIASM ENERGY CARD %c ${CARD_VERSION} `,
@@ -616,7 +616,14 @@ class HiasmEnergyCard extends LitElement {
 
     const root = this.shadowRoot;
     const packets = root.querySelectorAll('.packet');
-    if (!packets.length || !this._paths) return;
+
+    console.log('[HIASM] Animation starting, packets found:', packets.length);
+    console.log('[HIASM] Paths:', this._paths);
+
+    if (!packets.length || !this._paths) {
+      console.log('[HIASM] Animation aborted - no packets or paths');
+      return;
+    }
 
     const startTime = performance.now();
 
