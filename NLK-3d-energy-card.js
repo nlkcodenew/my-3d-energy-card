@@ -123,7 +123,6 @@ class NLK3DEnergyCard extends LitElement {
     const E = this.config.entities;
     const t = (k) => this._t(k);
     const maxP = this.config.max_power || 5000;
-    const dotsPerLine = this.config.dots_per_line || 3;
 
     const solarP = this._getState(E.solar);
     const gridP = this._getState(E.grid);
@@ -161,14 +160,7 @@ class NLK3DEnergyCard extends LitElement {
     const cLoad = this._getColor('load');
     const cInv = this._getColor('inverter');
 
-    // Generate multiple dots per line
-    const renderDots = (key, color, count) => {
-      const dots = [];
-      for (let i = 0; i < count; i++) {
-        dots.push(html`<circle id="dot-${key}-${i}" class="flow-dot" r="5" fill="${color}" style="display: none;" />`);
-      }
-      return dots;
-    };
+
 
     return html`
       <ha-card>
@@ -179,11 +171,11 @@ class NLK3DEnergyCard extends LitElement {
             <path id="w-grid" class="wire" d="" />
             <path id="w-bat" class="wire" d="" />
             <path id="w-load" class="wire" d="" />
-            
-            ${renderDots('solar', cSolar, dotsPerLine)}
-            ${renderDots('grid', cGrid, dotsPerLine)}
-            ${renderDots('bat', cBat, dotsPerLine)}
-            ${renderDots('load', cLoad, dotsPerLine)}
+            <!-- Flow Dots (single dot per line) -->
+            <circle id="dot-solar" class="flow-dot" r="6" fill="${cSolar}" style="display: none;" />
+            <circle id="dot-grid" class="flow-dot" r="6" fill="${cGrid}" style="display: none;" />
+            <circle id="dot-bat" class="flow-dot" r="6" fill="${cBat}" style="display: none;" />
+            <circle id="dot-load" class="flow-dot" r="6" fill="${cLoad}" style="display: none;" />
           </svg>
 
           <div class="node solar ${shouldPulse(solarP) ? 'pulse' : ''}" id="n-solar" @click=${() => this._handlePopup(E.solar)} style="border-top-color: ${cSolar};">
@@ -281,7 +273,6 @@ class NLK3DEnergyCard extends LitElement {
     const root = this.shadowRoot;
     const E = this.config.entities;
     const maxP = this.config.max_power || 5000;
-    const dotsPerLine = this.config.dots_per_line || 3;
 
     const solarP = this._getState(E.solar);
     const gridP = this._getState(E.grid);
@@ -294,45 +285,40 @@ class NLK3DEnergyCard extends LitElement {
       return 50 + (Math.abs(val) / maxP) * 200;
     };
 
-    const setupDotsForLine = (key, value, reverse) => {
+    const setupDot = (key, value, reverse) => {
+      const dotEl = root.getElementById(`dot-${key}`);
       const wireEl = root.getElementById(`w-${key}`);
-      if (!wireEl) return;
+      if (!dotEl || !wireEl) return;
 
       const pathLength = wireEl.getTotalLength ? wireEl.getTotalLength() : 200;
       const speed = getSpeed(value);
       const active = Math.abs(value) > 5;
 
-      for (let i = 0; i < dotsPerLine; i++) {
-        const dotEl = root.getElementById(`dot-${key}-${i}`);
-        if (!dotEl) continue;
-
-        const dotKey = `${key}-${i}`;
-        if (!this._dots[dotKey]) {
-          this._dots[dotKey] = {
-            element: dotEl,
-            path: wireEl,
-            pathLength: pathLength,
-            currentPos: (pathLength / dotsPerLine) * i, // Offset each dot
-            active: false,
-            speed: 0,
-            reverse: false,
-          };
-        }
-
-        const dot = this._dots[dotKey];
-        dot.pathLength = pathLength;
-        dot.active = active;
-        dot.reverse = reverse;
-        dot.speed = speed;
-        dotEl.style.display = active ? 'inline' : 'none';
+      if (!this._dots[key]) {
+        this._dots[key] = {
+          element: dotEl,
+          path: wireEl,
+          pathLength: pathLength,
+          currentPos: 0,
+          active: false,
+          speed: 0,
+          reverse: false,
+        };
       }
+
+      const dot = this._dots[key];
+      dot.pathLength = pathLength;
+      dot.active = active;
+      dot.reverse = reverse;
+      dot.speed = speed;
+      dotEl.style.display = active ? 'inline' : 'none';
     };
 
-    setupDotsForLine('solar', solarP, false);
-    setupDotsForLine('grid', gridP, gridP < 0);
+    setupDot('solar', solarP, false);
+    setupDot('grid', gridP, gridP < 0);
     const batReverse = batteryInvert ? (batP > 0) : (batP < 0);
-    setupDotsForLine('bat', batP, batReverse);
-    setupDotsForLine('load', loadP, true);
+    setupDot('bat', batP, batReverse);
+    setupDot('load', loadP, true);
 
     if (!this._animationFrame) {
       this._animationFrame = requestAnimationFrame(this._animateDots.bind(this));
