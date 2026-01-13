@@ -1,7 +1,7 @@
 # NLK 3D Energy Card
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-1.0.1-blue?style=for-the-badge" alt="Version">
+  <img src="https://img.shields.io/badge/version-1.1.0-blue?style=for-the-badge" alt="Version">
   <img src="https://img.shields.io/badge/HACS-Default-orange?style=for-the-badge" alt="HACS">
   <img src="https://img.shields.io/badge/Home%20Assistant-2024.1+-green?style=for-the-badge" alt="HA">
 </p>
@@ -16,13 +16,14 @@ Thẻ năng lượng 3D đẹp mắt cho Home Assistant với dòng chảy năng
 
 | Feature | Description / Mô tả |
 |---------|---------------------|
-| 🎯 **Animated Flow** | Multiple animated dots show energy direction / Nhiều chấm động hiển thị hướng năng lượng |
-| 📊 **Self-Sufficiency** | Shows % of load covered by solar / Hiển thị % tải được cấp bởi solar |
-| 🎨 **Custom Colors** | Override default neon colors / Tùy chỉnh màu neon mặc định |
-| 💡 **Node Pulse** | Nodes pulse when high power flow / Node nhấp nháy khi công suất cao |
-| 🌐 **Multi-Language** | English & Vietnamese support / Hỗ trợ tiếng Anh & Việt |
-| 📱 **Responsive** | Works on mobile & desktop / Hoạt động trên mobile & desktop |
-| 🌙 **Theme Support** | Adapts to HA light/dark themes / Tự động theo theme HA |
+| 🎯 **Animated Flow** | Multiple animated dots with comet tail glow / Nhiều chấm động với hiệu ứng đuôi sao |
+| 📊 **Self-Sufficiency** | Shows % based on daily consumption / Hiển thị % dựa trên tiêu thụ hàng ngày |
+| 🎨 **Color Editor** | Visual color pickers in editor / Chọn màu trực quan trong editor |
+| 🔋 **Battery Time** | Shows time remaining / to full / Hiển thị thời gian còn lại / đầy |
+| ➡️ **Flow Arrows** | Direction arrows on wires / Mũi tên hướng trên dây |
+| 📐 **Card Sizes** | Compact, Normal, Large modes / Chế độ nhỏ, thường, lớn |
+| 💡 **Node Pulse** | Nodes pulse when high power / Node nhấp nháy khi công suất cao |
+| 🌐 **Multi-Language** | English & Vietnamese / Hỗ trợ tiếng Anh & Việt |
 
 ---
 
@@ -77,11 +78,12 @@ entities:
 type: custom:nlk-3d-energy-card
 max_power: 5000
 language: vi  # en | vi
-dots_per_line: 3  # 1-5 dots per flow line
-show_self_sufficiency: true  # Show self-sufficiency %
-battery_invert: false  # Invert battery sign convention
-buy_price: 3000  # Cost per kWh (VND)
-sell_price: 2000  # Sell price per kWh
+show_self_sufficiency: true
+battery_invert: false
+battery_capacity: 10  # kWh for time remaining
+card_size: normal  # compact | normal | large
+buy_price: 3000
+sell_price: 2000
 currency: "đ"
 
 # Custom colors (optional)
@@ -160,7 +162,7 @@ Solar Used Locally = Solar Production - Grid Export
 ### Animation not showing / Animation không hiển thị
 1. Clear browser cache: `Ctrl + Shift + R`
 2. Check console for errors: `F12` → Console
-3. Verify card version shows `1.0.1`
+3. Verify card version shows `1.1.0`
 
 ### Wrong battery direction / Hướng pin sai
 Enable `battery_invert: true` in config
@@ -172,13 +174,18 @@ Adjust `max_power` to match your system's peak power
 
 ## 📝 Changelog
 
-### v1.0.1 (2026-01-13)
-- ✨ **Multiple dots per flow line** (configurable 1-5)
-- ✨ **Self-sufficiency percentage** display
-- ✨ **Customizable colors** via config
-- ✨ **Node pulse animation** when power > 30%
-- ✨ **Enhanced glow effect** on flow dots
-- 🔧 Improved editor layout
+### v1.1.0 (2026-01-13)
+- ✨ **Color Editor in UI** - Visual color pickers for all elements
+- ✨ **Battery Time Remaining** - Shows "~Xh left" or "~Xh → 100%"
+- ✨ **Flow Direction Arrows** - Arrow markers on wires
+- ✨ **Card Size Options** - Compact (320px), Normal (420px), Large (520px)
+- ✨ **Enhanced Comet Tail** - Triple drop-shadow glow effect
+
+### v1.0.4 (2026-01-13)
+- ✨ Multi-dots animation (3 per line)
+- ✨ Self-sufficiency % (daily-based, matches HA Energy)
+- ✨ Node pulse animation
+- 🔧 Renamed to NLK 3D Energy Card
 ---
 
 ## 📄 License

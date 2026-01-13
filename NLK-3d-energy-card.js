@@ -1,6 +1,6 @@
 /*
- * NLK 3D ENERGY CARD - V1.0.1 (ENHANCED EDITION)
- * Features: Multi-dots, Self-sufficiency %, Customizable colors, Glow effects, Node pulse
+ * NLK 3D ENERGY CARD - V1.1.0 (ENHANCED EDITION)
+ * Features: Multi-dots, Self-sufficiency %, Customizable colors, Glow effects, Node pulse, Battery Time, Flow Arrows
  */
 
 import {
@@ -9,7 +9,7 @@ import {
   css,
 } from "https://unpkg.com/lit-element@2.4.0/lit-element.js?module";
 
-const CARD_VERSION = "1.0.4";
+const CARD_VERSION = "1.1.0";
 
 console.info(
   `%c NLK 3D ENERGY CARD %c ${CARD_VERSION} `,
@@ -36,8 +36,10 @@ class NLK3DEnergyCard extends LitElement {
   static getStubConfig() {
     return {
       max_power: 5000, buy_price: 3000, sell_price: 2000, currency: "đ", language: "vi", battery_invert: false,
-      show_self_sufficiency: true, // NEW: Show self-sufficiency %
-      colors: {}, // NEW: Custom colors override
+      show_self_sufficiency: true,
+      battery_capacity: 10, // kWh for time remaining calc
+      card_size: "normal", // compact | normal | large
+      colors: {},
       entities: { solar: "sensor.solar_power", solar_daily: "sensor.solar_energy_daily", grid: "sensor.grid_power", grid_buy_daily: "sensor.grid_import_daily", grid_sell_daily: "sensor.grid_export_daily", battery_soc: "sensor.battery_level", battery_power: "sensor.battery_power", battery_daily_charge: "sensor.battery_charge_daily", battery_daily_discharge: "sensor.battery_discharge_daily", load: "sensor.load_power", load_daily: "sensor.load_energy_daily", inverter_temp: "sensor.inverter_temperature" }
     };
   }
@@ -64,8 +66,9 @@ class NLK3DEnergyCard extends LitElement {
   static get styles() {
     return css`
       :host { display: block; padding: 0; --bg-card: var(--ha-card-background, #141414); --text-primary: var(--primary-text-color, #fff); --text-secondary: var(--secondary-text-color, #888); --border-color: var(--divider-color, rgba(255,255,255,0.1)); }
-      ha-card { background: var(--bg-card); overflow: hidden; border-radius: 16px; position: relative; height: 420px; border: 1px solid var(--border-color); }
-      @media (max-width: 400px) { ha-card { height: 380px; } }
+      ha-card { background: var(--bg-card); overflow: hidden; border-radius: 16px; position: relative; height: var(--card-height, 420px); border: 1px solid var(--border-color); }
+      :host([data-size="compact"]) { --card-height: 320px; } :host([data-size="large"]) { --card-height: 520px; }
+      @media (max-width: 400px) { ha-card { height: calc(var(--card-height, 420px) - 40px); } }
       .bg-grid { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-image: linear-gradient(var(--border-color) 1px, transparent 1px), linear-gradient(90deg, var(--border-color) 1px, transparent 1px); background-size: 40px 40px; mask-image: radial-gradient(circle at center, black 40%, transparent 100%); opacity: 0.5; }
       .scene { width: 100%; height: 100%; position: relative; perspective: 1000px; }
       
@@ -106,8 +109,13 @@ class NLK3DEnergyCard extends LitElement {
       svg.connections { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 3; overflow: visible; }
       path.wire { fill: none; stroke: rgba(255,255,255,0.12); stroke-width: 3; }
       
-      /* Enhanced Flow Dots with glow */
-      .flow-dot { filter: drop-shadow(0 0 8px currentColor) drop-shadow(0 0 4px currentColor); }
+      /* Enhanced Flow Dots with Comet Tail effect */
+      .flow-dot { 
+        filter: drop-shadow(0 0 10px currentColor) drop-shadow(0 0 5px currentColor) drop-shadow(0 0 3px currentColor);
+        opacity: 0.95;
+      }
+      .flow-dot-tail { opacity: 0.4; filter: blur(2px); }
+      .flow-dot-tail2 { opacity: 0.2; filter: blur(4px); }
     `;
   }
 
@@ -162,17 +170,39 @@ class NLK3DEnergyCard extends LitElement {
     const cLoad = this._getColor('load');
     const cInv = this._getColor('inverter');
 
+    // Card size attribute
+    const cardSize = this.config.card_size || 'normal';
+    this.setAttribute('data-size', cardSize);
 
+    // Battery Time Remaining calculation
+    const batCapacity = this.config.battery_capacity || 10; // kWh
+    let batTimeRemaining = '';
+    if (absBatP > 10) {
+      const remainingKwh = (batSoc / 100) * batCapacity;
+      if (isBatCharge) {
+        const hoursToFull = ((batCapacity - remainingKwh) / (absBatP / 1000));
+        batTimeRemaining = hoursToFull > 0 ? `~${hoursToFull.toFixed(1)}h → 100%` : '';
+      } else {
+        const hoursLeft = remainingKwh / (absBatP / 1000);
+        batTimeRemaining = hoursLeft > 0 ? `~${hoursLeft.toFixed(1)}h left` : '';
+      }
+    }
 
     return html`
       <ha-card>
         <div class="bg-grid"></div>
         <div class="scene" id="scene">
           <svg class="connections">
-            <path id="w-solar" class="wire" d="" />
-            <path id="w-grid" class="wire" d="" />
-            <path id="w-bat" class="wire" d="" />
-            <path id="w-load" class="wire" d="" />
+            <defs>
+              <marker id="arrow-solar" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto"><polygon points="0,0 6,3 0,6" fill="${cSolar}" opacity="0.7"/></marker>
+              <marker id="arrow-grid" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto"><polygon points="0,0 6,3 0,6" fill="${cGrid}" opacity="0.7"/></marker>
+              <marker id="arrow-bat" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto"><polygon points="0,0 6,3 0,6" fill="${cBat}" opacity="0.7"/></marker>
+              <marker id="arrow-load" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto"><polygon points="0,0 6,3 0,6" fill="${cLoad}" opacity="0.7"/></marker>
+            </defs>
+            <path id="w-solar" class="wire" d="" marker-mid="url(#arrow-solar)" />
+            <path id="w-grid" class="wire" d="" marker-mid="url(#arrow-grid)" />
+            <path id="w-bat" class="wire" d="" marker-mid="url(#arrow-bat)" />
+            <path id="w-load" class="wire" d="" marker-mid="url(#arrow-load)" />
             <!-- Flow Dots (3 per line, fixed IDs) -->
             <circle id="dot-solar-0" class="flow-dot" r="5" fill="${cSolar}" style="display: none;" />
             <circle id="dot-solar-1" class="flow-dot" r="5" fill="${cSolar}" style="display: none;" />
@@ -219,6 +249,7 @@ class NLK3DEnergyCard extends LitElement {
         html`<div class="sub-row"><span>${t('charge')}:</span><span>${this._getDisplay(E.battery_daily_charge)}</span></div><span class="status-badge status-charging">${t('charging')}</span>` :
         html`<div class="sub-row"><span>${t('discharge')}:</span><span>${this._getDisplay(E.battery_daily_discharge)}</span></div><span class="status-badge status-discharging">${t('discharging')}</span>`
       }
+              ${batTimeRemaining ? html`<div class="sub-row" style="margin-top:4px;"><span style="font-size:0.6rem;color:#888;">${batTimeRemaining}</span></div>` : ''}
             </div>
           </div>
 
@@ -423,6 +454,7 @@ class NLK3DEnergyCardEditor extends LitElement {
       <h3>🔋 Battery</h3>
       <div class="inline">${this._i("SoC", "battery_soc", E.battery_soc, true)}${this._i("Power", "battery_power", E.battery_power, true)}</div>
       <div class="inline">${this._i("Charge", "battery_daily_charge", E.battery_daily_charge, true)}${this._i("Discharge", "battery_daily_discharge", E.battery_daily_discharge, true)}</div>
+      ${this._i("Capacity (kWh)", "battery_capacity", this.config.battery_capacity, false, "number")}
       <div class="row"><label><input type="checkbox" .checked=${this.config.battery_invert || false} @change=${(e) => { const ev = new Event("config-changed", { bubbles: true, composed: true }); ev.detail = { config: { ...this.config, battery_invert: e.target.checked } }; this.dispatchEvent(ev) }}> Invert Battery (+ = Charge)</label></div>
       
       <h3>🏠 Load</h3>
@@ -430,9 +462,33 @@ class NLK3DEnergyCardEditor extends LitElement {
       
       <h3>⚡ Inverter</h3>
       ${this._i("Temperature", "inverter_temp", E.inverter_temp, true)}
+      
+      <h3>🎨 Colors</h3>
+      <div class="inline">
+        <div class="row"><label>Solar</label><input type="color" .value="${this.config.colors?.solar || '#ffdd00'}" @change=${(e) => this._setColor('solar', e.target.value)}></div>
+        <div class="row"><label>Grid</label><input type="color" .value="${this.config.colors?.grid || '#00f3ff'}" @change=${(e) => this._setColor('grid', e.target.value)}></div>
+      </div>
+      <div class="inline">
+        <div class="row"><label>Battery</label><input type="color" .value="${this.config.colors?.battery || '#00ff9d'}" @change=${(e) => this._setColor('battery', e.target.value)}></div>
+        <div class="row"><label>Load</label><input type="color" .value="${this.config.colors?.load || '#ff0055'}" @change=${(e) => this._setColor('load', e.target.value)}></div>
+      </div>
+      <div class="row"><label>Inverter</label><input type="color" .value="${this.config.colors?.inverter || '#a855f7'}" @change=${(e) => this._setColor('inverter', e.target.value)}></div>
+      
+      <h3>📐 Card Size</h3>
+      <div class="row"><label>Size</label><select @change=${(e) => { const ev = new Event("config-changed", { bubbles: true, composed: true }); ev.detail = { config: { ...this.config, card_size: e.target.value } }; this.dispatchEvent(ev) }}>
+        <option value="normal" ?selected=${(this.config.card_size || 'normal') === 'normal'}>Normal (420px)</option>
+        <option value="compact" ?selected=${this.config.card_size === 'compact'}>Compact (320px)</option>
+        <option value="large" ?selected=${this.config.card_size === 'large'}>Large (520px)</option>
+      </select></div>
     </div>`;
   }
   _i(l, k, v, s = false, type = "text") { return html`<div class="row"><label>${l}</label><input type="${type}" .value="${v || ''}" .configValue=${s ? undefined : k} .subValue=${s ? k : undefined} @input=${this._val}></div>`; }
+  _setColor(key, value) {
+    const colors = { ...(this.config.colors || {}), [key]: value };
+    const ev = new Event("config-changed", { bubbles: true, composed: true });
+    ev.detail = { config: { ...this.config, colors } };
+    this.dispatchEvent(ev);
+  }
 }
 customElements.define("nlk-3d-energy-card-editor", NLK3DEnergyCardEditor);
 window.customCards = window.customCards || [];
