@@ -35,6 +35,8 @@ class HiasmEnergyCard extends LitElement {
       entities: {
         solar: "sensor.solar_power",
         solar_daily: "sensor.solar_energy_daily",
+        pv1: "sensor.pv1_power",
+        pv2: "sensor.pv2_power",
         grid: "sensor.grid_power",
         grid_buy_daily: "sensor.grid_import_daily",
         grid_sell_daily: "sensor.grid_export_daily",
@@ -444,36 +446,32 @@ class HiasmEnergyCard extends LitElement {
             <path id="w-bat" class="wire" d="" />
             <path id="w-load" class="wire" d="" />
 
-            <!-- Animated flow paths -->
+            <!-- Animated flow paths with solid colors -->
             ${solarP > 10 ? html`
               <path id="f-solar" class="flow flow-active" 
-                    stroke="url(#grad-solar)" 
-                    filter="url(#glow-yellow)"
-                    style="animation-duration: ${getDur(solarP)}s"
+                    stroke="var(--neon-yellow)" 
+                    style="--flow-speed: ${getDur(solarP)}s"
                     d="" />
             ` : ''}
 
             ${Math.abs(gridP) > 10 ? html`
               <path id="f-grid" class="flow flow-active" 
-                    stroke="url(#grad-grid)"
-                    filter="url(#glow-blue)" 
-                    style="animation-duration: ${getDur(gridP)}s"
+                    stroke="var(--neon-blue)"
+                    style="--flow-speed: ${getDur(gridP)}s"
                     d="" />
             ` : ''}
 
             ${Math.abs(batP) > 10 ? html`
               <path id="f-bat" class="flow flow-active" 
-                    stroke="url(#grad-bat)"
-                    filter="url(#glow-green)" 
-                    style="animation-duration: ${getDur(batP)}s"
+                    stroke="var(--neon-green)"
+                    style="--flow-speed: ${getDur(batP)}s"
                     d="" />
             ` : ''}
 
             ${loadP > 10 ? html`
               <path id="f-load" class="flow flow-active" 
-                    stroke="url(#grad-load)"
-                    filter="url(#glow-red)" 
-                    style="animation-duration: ${getDur(loadP)}s"
+                    stroke="var(--neon-red)"
+                    style="--flow-speed: ${getDur(loadP)}s"
                     d="" />
             ` : ''}
           </svg>
@@ -484,6 +482,12 @@ class HiasmEnergyCard extends LitElement {
             <span class="label">Solar</span>
             <span class="main-val c-solar">${solarP.toFixed(0)} W</span>
             <div class="sub-info">
+              ${E.pv1 || E.pv2 ? html`
+                <div class="sub-row">
+                  ${E.pv1 ? html`<span>PV1: ${this._getState(E.pv1).toFixed(0)}W</span>` : ''}
+                  ${E.pv2 ? html`<span>PV2: ${this._getState(E.pv2).toFixed(0)}W</span>` : ''}
+                </div>
+              ` : ''}
               <div class="sub-row">
                 <span>Hôm nay:</span>
                 <span>${this._getDisplay(E.solar_daily)}</span>
@@ -708,6 +712,8 @@ class HiasmEnergyCardEditor extends LitElement {
         <h3>☀️ Solar</h3>
         ${this._inp("Solar Power (W)", "solar", E.solar, true)}
         ${this._inp("Solar Daily (kWh)", "solar_daily", E.solar_daily, true)}
+        ${this._inp("PV1 Power (W)", "pv1", E.pv1, true)}
+        ${this._inp("PV2 Power (W)", "pv2", E.pv2, true)}
         
         <h3>🔌 Lưới điện</h3>
         ${this._inp("Grid Power (W)", "grid", E.grid, true)}
