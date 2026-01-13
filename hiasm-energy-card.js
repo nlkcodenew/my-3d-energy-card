@@ -9,7 +9,7 @@ import {
   css,
 } from "https://unpkg.com/lit-element@2.4.0/lit-element.js?module";
 
-const CARD_VERSION = "3.2.1";
+const CARD_VERSION = "3.2.2";
 
 console.info(
   `%c HIASM ENERGY CARD %c ${CARD_VERSION} `,
