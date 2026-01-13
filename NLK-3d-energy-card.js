@@ -36,7 +36,6 @@ class NLK3DEnergyCard extends LitElement {
   static getStubConfig() {
     return {
       max_power: 5000, buy_price: 3000, sell_price: 2000, currency: "đ", language: "vi", battery_invert: false,
-      dots_per_line: 3, // NEW: Number of dots per flow line
       show_self_sufficiency: true, // NEW: Show self-sufficiency %
       colors: {}, // NEW: Custom colors override
       entities: { solar: "sensor.solar_power", solar_daily: "sensor.solar_energy_daily", grid: "sensor.grid_power", grid_buy_daily: "sensor.grid_import_daily", grid_sell_daily: "sensor.grid_export_daily", battery_soc: "sensor.battery_level", battery_power: "sensor.battery_power", battery_daily_charge: "sensor.battery_charge_daily", battery_daily_discharge: "sensor.battery_discharge_daily", load: "sensor.load_power", load_daily: "sensor.load_energy_daily", inverter_temp: "sensor.inverter_temperature" }
@@ -136,14 +135,13 @@ class NLK3DEnergyCard extends LitElement {
     const absBatP = Math.abs(batP);
     const absGridP = Math.abs(gridP);
 
-    // Self-sufficiency calculation (Optimistic Mode)
-    // LocalProduction = Solar + BatteryDischarge
-    // Self% = (LocalProduction / Load) * 100
+    // Self-sufficiency calculation (Daily kWh based - matches HA Energy Dashboard)
+    // Self% = (Load_Daily - Grid_Buy_Daily) / Load_Daily × 100
     let selfSufficiency = 0;
-    if (loadP > 0) {
-      const batDischarge = isBatCharge ? 0 : absBatP;
-      const localProduction = solarP + batDischarge;
-      selfSufficiency = Math.min(100, (localProduction / loadP) * 100);
+    const loadDaily = this._getState(E.load_daily);
+    const gridBuyDaily = this._getState(E.grid_buy_daily);
+    if (loadDaily > 0) {
+      selfSufficiency = Math.max(0, Math.min(100, ((loadDaily - gridBuyDaily) / loadDaily) * 100));
     }
     const showSelf = this.config.show_self_sufficiency !== false;
 
@@ -175,11 +173,19 @@ class NLK3DEnergyCard extends LitElement {
             <path id="w-grid" class="wire" d="" />
             <path id="w-bat" class="wire" d="" />
             <path id="w-load" class="wire" d="" />
-            <!-- Flow Dots (single dot per line) -->
-            <circle id="dot-solar" class="flow-dot" r="6" fill="${cSolar}" style="display: none;" />
-            <circle id="dot-grid" class="flow-dot" r="6" fill="${cGrid}" style="display: none;" />
-            <circle id="dot-bat" class="flow-dot" r="6" fill="${cBat}" style="display: none;" />
-            <circle id="dot-load" class="flow-dot" r="6" fill="${cLoad}" style="display: none;" />
+            <!-- Flow Dots (3 per line, fixed IDs) -->
+            <circle id="dot-solar-0" class="flow-dot" r="5" fill="${cSolar}" style="display: none;" />
+            <circle id="dot-solar-1" class="flow-dot" r="5" fill="${cSolar}" style="display: none;" />
+            <circle id="dot-solar-2" class="flow-dot" r="5" fill="${cSolar}" style="display: none;" />
+            <circle id="dot-grid-0" class="flow-dot" r="5" fill="${cGrid}" style="display: none;" />
+            <circle id="dot-grid-1" class="flow-dot" r="5" fill="${cGrid}" style="display: none;" />
+            <circle id="dot-grid-2" class="flow-dot" r="5" fill="${cGrid}" style="display: none;" />
+            <circle id="dot-bat-0" class="flow-dot" r="5" fill="${cBat}" style="display: none;" />
+            <circle id="dot-bat-1" class="flow-dot" r="5" fill="${cBat}" style="display: none;" />
+            <circle id="dot-bat-2" class="flow-dot" r="5" fill="${cBat}" style="display: none;" />
+            <circle id="dot-load-0" class="flow-dot" r="5" fill="${cLoad}" style="display: none;" />
+            <circle id="dot-load-1" class="flow-dot" r="5" fill="${cLoad}" style="display: none;" />
+            <circle id="dot-load-2" class="flow-dot" r="5" fill="${cLoad}" style="display: none;" />
           </svg>
 
           <div class="node solar ${shouldPulse(solarP) ? 'pulse' : ''}" id="n-solar" @click=${() => this._handlePopup(E.solar)} style="border-top-color: ${cSolar};">
@@ -277,6 +283,7 @@ class NLK3DEnergyCard extends LitElement {
     const root = this.shadowRoot;
     const E = this.config.entities;
     const maxP = this.config.max_power || 5000;
+    const dotsCount = 3; // Fixed 3 dots per line
 
     const solarP = this._getState(E.solar);
     const gridP = this._getState(E.grid);
@@ -289,40 +296,45 @@ class NLK3DEnergyCard extends LitElement {
       return 50 + (Math.abs(val) / maxP) * 200;
     };
 
-    const setupDot = (key, value, reverse) => {
-      const dotEl = root.getElementById(`dot-${key}`);
+    const setupDotsForLine = (key, value, reverse) => {
       const wireEl = root.getElementById(`w-${key}`);
-      if (!dotEl || !wireEl) return;
+      if (!wireEl) return;
 
       const pathLength = wireEl.getTotalLength ? wireEl.getTotalLength() : 200;
       const speed = getSpeed(value);
       const active = Math.abs(value) > 5;
 
-      if (!this._dots[key]) {
-        this._dots[key] = {
-          element: dotEl,
-          path: wireEl,
-          pathLength: pathLength,
-          currentPos: 0,
-          active: false,
-          speed: 0,
-          reverse: false,
-        };
-      }
+      for (let i = 0; i < dotsCount; i++) {
+        const dotEl = root.getElementById(`dot-${key}-${i}`);
+        if (!dotEl) continue;
 
-      const dot = this._dots[key];
-      dot.pathLength = pathLength;
-      dot.active = active;
-      dot.reverse = reverse;
-      dot.speed = speed;
-      dotEl.style.display = active ? 'inline' : 'none';
+        const dotKey = `${key}-${i}`;
+        if (!this._dots[dotKey]) {
+          this._dots[dotKey] = {
+            element: dotEl,
+            path: wireEl,
+            pathLength: pathLength,
+            currentPos: (pathLength / dotsCount) * i, // Offset each dot evenly
+            active: false,
+            speed: 0,
+            reverse: false,
+          };
+        }
+
+        const dot = this._dots[dotKey];
+        dot.pathLength = pathLength;
+        dot.active = active;
+        dot.reverse = reverse;
+        dot.speed = speed;
+        dotEl.style.display = active ? 'inline' : 'none';
+      }
     };
 
-    setupDot('solar', solarP, false);
-    setupDot('grid', gridP, gridP < 0);
+    setupDotsForLine('solar', solarP, false);
+    setupDotsForLine('grid', gridP, gridP < 0);
     const batReverse = batteryInvert ? (batP > 0) : (batP < 0);
-    setupDot('bat', batP, batReverse);
-    setupDot('load', loadP, true);
+    setupDotsForLine('bat', batP, batReverse);
+    setupDotsForLine('load', loadP, true);
 
     if (!this._animationFrame) {
       this._animationFrame = requestAnimationFrame(this._animateDots.bind(this));
@@ -393,7 +405,6 @@ class NLK3DEnergyCardEditor extends LitElement {
       <h3>⚙️ General</h3>
       ${this._i("Max Power (W)", "max_power", this.config.max_power, false, "number")}
       <div class="row"><label>Language</label><select @change=${(e) => { const ev = new Event("config-changed", { bubbles: true, composed: true }); ev.detail = { config: { ...this.config, language: e.target.value } }; this.dispatchEvent(ev) }}><option value="vi" ?selected=${this.config.language === 'vi'}>Tiếng Việt</option><option value="en" ?selected=${this.config.language === 'en'}>English</option></select></div>
-      ${this._i("Dots per Line", "dots_per_line", this.config.dots_per_line || 3, false, "number")}
       <div class="row"><label><input type="checkbox" .checked=${this.config.show_self_sufficiency !== false} @change=${(e) => { const ev = new Event("config-changed", { bubbles: true, composed: true }); ev.detail = { config: { ...this.config, show_self_sufficiency: e.target.checked } }; this.dispatchEvent(ev) }}> Show Self-Sufficiency %</label></div>
       
       <h3>💰 Cost</h3>
