@@ -9,7 +9,7 @@ import {
   css,
 } from "https://unpkg.com/lit-element@2.4.0/lit-element.js?module";
 
-const CARD_VERSION = "3.3.10";
+const CARD_VERSION = "3.3.11";
 
 console.info(
   `%c HIASM ENERGY CARD %c ${CARD_VERSION} `,
@@ -453,23 +453,23 @@ class HiasmEnergyCard extends LitElement {
 
             <!-- Energy Packets (animated by JS) -->
             ${solarP > 10 ? html`
-              <circle class="packet packet-solar" r="7" fill="var(--neon-yellow)" filter="url(#glow-yellow)" data-speed="${getDur(solarP)}" data-dir="0"></circle>
-              <circle class="packet packet-solar" r="7" fill="var(--neon-yellow)" filter="url(#glow-yellow)" data-speed="${getDur(solarP)}" data-dir="0" data-offset="0.5"></circle>
+              <circle class="packet packet-solar" r="8" fill="#ffdd00" data-speed="${getDur(solarP)}" data-dir="0"></circle>
+              <circle class="packet packet-solar" r="8" fill="#ffdd00" data-speed="${getDur(solarP)}" data-dir="0" data-offset="0.5"></circle>
             ` : ''}
 
             ${Math.abs(gridP) > 10 ? html`
-              <circle class="packet packet-grid" r="7" fill="var(--neon-blue)" filter="url(#glow-blue)" data-speed="${getDur(gridP)}" data-dir="${isGridImport ? '0' : '1'}"></circle>
-              <circle class="packet packet-grid" r="7" fill="var(--neon-blue)" filter="url(#glow-blue)" data-speed="${getDur(gridP)}" data-dir="${isGridImport ? '0' : '1'}" data-offset="0.5"></circle>
+              <circle class="packet packet-grid" r="8" fill="#00f3ff" data-speed="${getDur(gridP)}" data-dir="${isGridImport ? '0' : '1'}"></circle>
+              <circle class="packet packet-grid" r="8" fill="#00f3ff" data-speed="${getDur(gridP)}" data-dir="${isGridImport ? '0' : '1'}" data-offset="0.5"></circle>
             ` : ''}
 
             ${Math.abs(batP) > 10 ? html`
-              <circle class="packet packet-bat" r="7" fill="var(--neon-green)" filter="url(#glow-green)" data-speed="${getDur(batP)}" data-dir="${isBatCharge ? '1' : '0'}"></circle>
-              <circle class="packet packet-bat" r="7" fill="var(--neon-green)" filter="url(#glow-green)" data-speed="${getDur(batP)}" data-dir="${isBatCharge ? '1' : '0'}" data-offset="0.5"></circle>
+              <circle class="packet packet-bat" r="8" fill="#00ff9d" data-speed="${getDur(batP)}" data-dir="${isBatCharge ? '1' : '0'}"></circle>
+              <circle class="packet packet-bat" r="8" fill="#00ff9d" data-speed="${getDur(batP)}" data-dir="${isBatCharge ? '1' : '0'}" data-offset="0.5"></circle>
             ` : ''}
 
             ${loadP > 10 ? html`
-              <circle class="packet packet-load" r="7" fill="var(--neon-red)" filter="url(#glow-red)" data-speed="${getDur(loadP)}" data-dir="1"></circle>
-              <circle class="packet packet-load" r="7" fill="var(--neon-red)" filter="url(#glow-red)" data-speed="${getDur(loadP)}" data-dir="1" data-offset="0.5"></circle>
+              <circle class="packet packet-load" r="8" fill="#ff0055" data-speed="${getDur(loadP)}" data-dir="1"></circle>
+              <circle class="packet packet-load" r="8" fill="#ff0055" data-speed="${getDur(loadP)}" data-dir="1" data-offset="0.5"></circle>
             ` : ''}
           </svg>
 
