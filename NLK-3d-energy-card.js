@@ -9,7 +9,7 @@ import {
   css,
 } from "https://unpkg.com/lit-element@2.4.0/lit-element.js?module";
 
-const CARD_VERSION = "1.1.0";
+const CARD_VERSION = "1.1.1";
 
 console.info(
   `%c NLK 3D ENERGY CARD %c ${CARD_VERSION} `,
@@ -135,10 +135,14 @@ class NLK3DEnergyCard extends LitElement {
     const gridP = this._getState(E.grid);
     const batP = this._getState(E.battery_power);
     const batSoc = this._getState(E.battery_soc);
-    const loadP = this._getState(E.load) || Math.abs(solarP + gridP + batP);
+
+    // Battery sign correction
+    const batteryInvert = this.config.battery_invert || false;
+
+    // Load: use sensor value directly, fallback to 0 if unavailable
+    const loadP = this._getState(E.load);
 
     const isGridImport = gridP > 0;
-    const batteryInvert = this.config.battery_invert || false;
     const isBatCharge = batteryInvert ? (batP > 0) : (batP < 0);
     const absBatP = Math.abs(batP);
     const absGridP = Math.abs(gridP);
