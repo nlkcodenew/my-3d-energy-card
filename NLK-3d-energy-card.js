@@ -9,7 +9,7 @@ import {
   css,
 } from "https://unpkg.com/lit-element@2.4.0/lit-element.js?module";
 
-const CARD_VERSION = "1.0.1";
+const CARD_VERSION = "1.0.4";
 
 console.info(
   `%c NLK 3D ENERGY CARD %c ${CARD_VERSION} `,
