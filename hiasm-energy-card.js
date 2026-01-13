@@ -9,7 +9,7 @@ import {
   css,
 } from "https://unpkg.com/lit-element@2.4.0/lit-element.js?module";
 
-const CARD_VERSION = "3.3.9";
+const CARD_VERSION = "3.3.10";
 
 console.info(
   `%c HIASM ENERGY CARD %c ${CARD_VERSION} `,
@@ -656,6 +656,13 @@ class HiasmEnergyCard extends LitElement {
         packet.setAttribute('cx', x);
         packet.setAttribute('cy', y);
       });
+
+      // Log first packet position once
+      if (!this._loggedOnce) {
+        const firstPacket = packets[0];
+        console.log('[HIASM] First packet position:', firstPacket.getAttribute('cx'), firstPacket.getAttribute('cy'));
+        this._loggedOnce = true;
+      }
 
       this._animationId = requestAnimationFrame(animate);
     };
