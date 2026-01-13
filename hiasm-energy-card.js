@@ -9,7 +9,7 @@ import {
   css,
 } from "https://unpkg.com/lit-element@2.4.0/lit-element.js?module";
 
-const CARD_VERSION = "3.3.5";
+const CARD_VERSION = "3.3.6";
 
 console.info(
   `%c HIASM ENERGY CARD %c ${CARD_VERSION} `,
@@ -45,7 +45,8 @@ class HiasmEnergyCard extends LitElement {
         battery_daily_charge: "sensor.battery_charge_daily",
         battery_daily_discharge: "sensor.battery_discharge_daily",
         load: "sensor.load_power",
-        load_daily: "sensor.load_energy_daily"
+        load_daily: "sensor.load_energy_daily",
+        inverter_temp: "sensor.inverter_temperature"
       }
     };
   }
@@ -354,11 +355,10 @@ class HiasmEnergyCard extends LitElement {
     // Default (false): positive = discharging, negative = charging
     const isBatCharge = batteryInvert ? (batP > 0) : (batP < 0);
 
-    // Animation Duration based on power
+    // Animation Duration based on power (returns number in seconds)
     const getDur = (w) => {
-      if (Math.abs(w) < 10) return "0";
-      const speed = Math.max(0.3, 2 - (Math.abs(w) / maxP) * 1.5);
-      return speed;
+      if (Math.abs(w) < 10) return 2; // Default slow if no power
+      return Math.max(0.5, 2.5 - (Math.abs(w) / maxP) * 2);
     };
 
     // Inverter shows Load power (output power)
@@ -502,10 +502,10 @@ class HiasmEnergyCard extends LitElement {
           </div>
 
           <!-- INVERTER HUB (Center) -->
-          <div class="inverter" id="n-inv" @click=${() => this._handlePopup(E.inverter)}>
+          <div class="inverter" id="n-inv" @click=${() => this._handlePopup(E.inverter_temp)}>
             <ha-icon icon="mdi:solar-power"></ha-icon>
             <span class="inv-label">Inverter</span>
-            <span class="inv-power">${loadP.toFixed(0)} W</span>
+            <span class="inv-power">${E.inverter_temp ? this._getDisplay(E.inverter_temp) : ''}</span>
           </div>
 
         </div>
@@ -730,7 +730,7 @@ class HiasmEnergyCardEditor extends LitElement {
         ${this._inp("Load Daily (kWh)", "load_daily", E.load_daily, true)}
         
         <h3>⚡ Inverter</h3>
-        ${this._inp("Inverter Entity (optional)", "inverter", E.inverter, true)}
+        ${this._inp("Nhiệt độ Inverter (°C)", "inverter_temp", E.inverter_temp, true)}
       </div>
     `;
   }
