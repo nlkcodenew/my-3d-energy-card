@@ -1,7 +1,7 @@
 # HIASM Energy Card
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-3.7.0-blue?style=for-the-badge" alt="Version">
+  <img src="https://img.shields.io/badge/version-1.0.1-blue?style=for-the-badge" alt="Version">
   <img src="https://img.shields.io/badge/HACS-Default-orange?style=for-the-badge" alt="HACS">
   <img src="https://img.shields.io/badge/Home%20Assistant-2024.1+-green?style=for-the-badge" alt="HA">
 </p>
@@ -160,7 +160,7 @@ Solar Used Locally = Solar Production - Grid Export
 ### Animation not showing / Animation không hiển thị
 1. Clear browser cache: `Ctrl + Shift + R`
 2. Check console for errors: `F12` → Console
-3. Verify card version shows `3.7.0`
+3. Verify card version shows `1.0.1`
 
 ### Wrong battery direction / Hướng pin sai
 Enable `battery_invert: true` in config
@@ -172,35 +172,13 @@ Adjust `max_power` to match your system's peak power
 
 ## 📝 Changelog
 
-### v3.7.0 (2026-01-13)
+### v1.0.1 (2026-01-13)
 - ✨ **Multiple dots per flow line** (configurable 1-5)
 - ✨ **Self-sufficiency percentage** display
 - ✨ **Customizable colors** via config
 - ✨ **Node pulse animation** when power > 30%
 - ✨ **Enhanced glow effect** on flow dots
 - 🔧 Improved editor layout
-
-### v3.6.0 (2026-01-13)
-- 🎉 **Working flow animation** using `getPointAtLength()`
-- 🔧 Fixed animation timing issues
-
-### v3.5.0 - v3.3.0
-- Various animation attempts and fixes
-
-### v3.2.0 (2026-01-13)
-- ✨ Responsive design
-- ✨ HA theme support
-- ✨ Energy cost calculation
-- ✨ Multi-language (EN/VI)
-
-### v3.1.0 (2026-01-13)
-- 🔧 Memory leak fixes
-- ✨ Dynamic battery icons
-- ✨ Status badges
-
-### v3.0.0 (2026-01-13)
-- 🎉 Initial release with 3D design
-
 ---
 
 ## 📄 License
@@ -212,12 +190,12 @@ MIT License - Feel free to modify and share!
 ## 🙏 Credits
 
 - Inspired by [Power Flow Card Plus](https://github.com/flixlix/power-flow-card-plus)
-- Animation pattern from [TB Energy Flow Card](https://github.com/tongtbgl/tb-energy-flow-card)
+- Animation pattern from [my-3d-energy-card](https://github.com/nlkcodenew/my-3d-energy-card)
 - Built with [LitElement](https://lit.dev/)
 
 ---
 
 <p align="center">
-  Made with ❤️ by HIASM<br>
-  <a href="https://github.com/hiasm/hiasm-energy-card">GitHub</a>
+  Made with ❤️ by nlkcodenew<br>
+  <a href="https://github.com/nlkcodenew/my-3d-energy-card">GitHub</a>
 </p>
