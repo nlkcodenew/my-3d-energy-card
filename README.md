@@ -1,4 +1,4 @@
-# HIASM Energy Card
+# NLK 3D Energy Card
 
 <p align="center">
   <img src="https://img.shields.io/badge/version-1.0.1-blue?style=for-the-badge" alt="Version">
@@ -31,18 +31,18 @@ Thẻ năng lượng 3D đẹp mắt cho Home Assistant với dòng chảy năng
 ### HACS (Recommended)
 
 1. Open HACS → Frontend → + Explore & Download Repositories
-2. Search for "HIASM Energy Card"
+2. Search for "NLK 3D Energy Card"
 3. Click Download
 4. Restart Home Assistant
 
 ### Manual
 
-1. Download `my-3d-energy-card.js` from the latest release
-2. Copy to `/config/www/my-3d-energy-card.js`
+1. Download `NLK-3d-energy-card.js` from the latest release
+2. Copy to `/config/www/NLK-3d-energy-card.js`
 3. Add to Lovelace resources:
    ```yaml
    resources:
-     - url: /local/my-3d-energy-card.js
+     - url: /local/NLK-3d-energy-card.js
        type: module
    ```
 
@@ -53,7 +53,7 @@ Thẻ năng lượng 3D đẹp mắt cho Home Assistant với dòng chảy năng
 ### Basic / Cơ bản
 
 ```yaml
-type: custom:my-3d-energy-card
+type: custom:nlk-3d-energy-card
 max_power: 5000
 language: vi
 entities:
@@ -74,7 +74,7 @@ entities:
 ### Full Options / Đầy đủ
 
 ```yaml
-type: custom:my-3d-energy-card
+type: custom:nlk-3d-energy-card
 max_power: 5000
 language: vi  # en | vi
 dots_per_line: 3  # 1-5 dots per flow line
@@ -190,12 +190,12 @@ MIT License - Feel free to modify and share!
 ## 🙏 Credits
 
 - Inspired by [Power Flow Card Plus](https://github.com/flixlix/power-flow-card-plus)
-- Animation pattern from [my-3d-energy-card](https://github.com/nlkcodenew/my-3d-energy-card)
+- Animation pattern from [TB Energy Flow Card](https://github.com/tongtbgl/tb-energy-flow-card)
 - Built with [LitElement](https://lit.dev/)
 
 ---
 
 <p align="center">
   Made with ❤️ by nlkcodenew<br>
-  <a href="https://github.com/nlkcodenew/my-3d-energy-card">GitHub</a>
+  <a href="https://github.com/nlkcodenew/nlk-3d-energy-card">GitHub</a>
 </p>
