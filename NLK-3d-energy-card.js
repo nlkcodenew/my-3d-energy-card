@@ -136,11 +136,15 @@ class NLK3DEnergyCard extends LitElement {
     const absBatP = Math.abs(batP);
     const absGridP = Math.abs(gridP);
 
-    // Self-sufficiency calculation: (Solar used locally / Load) * 100
-    // Solar used locally = Solar - Grid Export (when exporting)
-    const gridExport = Math.max(0, -gridP);
-    const solarUsedLocally = Math.max(0, solarP - gridExport);
-    const selfSufficiency = loadP > 0 ? Math.min(100, (solarUsedLocally / loadP) * 100) : 0;
+    // Self-sufficiency calculation (Optimistic Mode)
+    // LocalProduction = Solar + BatteryDischarge
+    // Self% = (LocalProduction / Load) * 100
+    let selfSufficiency = 0;
+    if (loadP > 0) {
+      const batDischarge = isBatCharge ? 0 : absBatP;
+      const localProduction = solarP + batDischarge;
+      selfSufficiency = Math.min(100, (localProduction / loadP) * 100);
+    }
     const showSelf = this.config.show_self_sufficiency !== false;
 
     // Pulse animation for high power nodes (>50% of max)
