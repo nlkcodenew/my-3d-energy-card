@@ -1,6 +1,6 @@
 /*
- * HIASM 3D ENERGY CARD - V3.4.0 (STABLE FLOW)
- * Features: CSS-based Flow Animation (No JS Loop), High Performance
+ * HIASM 3D ENERGY CARD - V3.5.0 (NATIVE SVG ANIMATION)
+ * Fix: Animation flow guaranteed to work using SVG native engine
  */
 
 import {
@@ -9,7 +9,7 @@ import {
   css,
 } from "https://unpkg.com/lit-element@2.4.0/lit-element.js?module";
 
-const CARD_VERSION = "3.3.12";
+const CARD_VERSION = "3.5.0";
 
 console.info(
   `%c HIASM ENERGY CARD %c ${CARD_VERSION} `,
@@ -23,9 +23,7 @@ const TRANSLATIONS = {
 };
 
 class HiasmEnergyCard extends LitElement {
-  static get properties() {
-    return { hass: { type: Object }, config: { type: Object } };
-  }
+  static get properties() { return { hass: { type: Object }, config: { type: Object } }; }
 
   static getStubConfig() {
     return {
@@ -80,23 +78,19 @@ class HiasmEnergyCard extends LitElement {
       .status-export { background: rgba(0, 243, 255, 0.2); color: var(--neon-blue); }
       .c-solar { color: var(--neon-yellow); } .c-grid { color: var(--neon-blue); } .c-bat { color: var(--neon-green); } .c-load { color: var(--neon-red); }
       
-      /* SVG CONNECTIONS & ANIMATION */
+      /* SVG CONNECTIONS */
       svg.connections { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 3; overflow: visible; }
       path.wire { fill: none; stroke: rgba(255,255,255,0.1); stroke-width: 3; }
       
-      /* THE FLOW ANIMATION - CSS BASED */
+      /* IMPORTANT: Path Flow Styling */
       path.flow {
         fill: none;
         stroke-width: 6;
         stroke-linecap: round;
-        stroke-dasharray: 10 120; /* 10px dash (packet), 120px gap */
-        animation: flow-anim var(--dur) linear infinite;
-        filter: drop-shadow(0 0 4px currentColor);
-      }
-      
-      @keyframes flow-anim {
-        from { stroke-dashoffset: 130; } /* 10 + 120 */
-        to { stroke-dashoffset: 0; }
+        /* Define the dash pattern here */
+        stroke-dasharray: 12 120; /* 12px dot, 120px gap */
+        filter: drop-shadow(0 0 5px currentColor);
+        opacity: 0.9;
       }
     `;
   }
@@ -125,9 +119,11 @@ class HiasmEnergyCard extends LitElement {
     const absBatP = Math.abs(batP);
     const absGridP = Math.abs(gridP);
 
-    // CSS Animation Duration (Seconds)
+    // Calculate Animation Speed (Duration in seconds)
+    // Fast = 0.5s, Slow = 3s
     const getDur = (w) => {
-      if (Math.abs(w) < 10) return 0; // 0 = stop
+      if (Math.abs(w) < 5) return 0; // Stop
+      // More power = Less duration (Faster)
       return Math.max(0.5, 3 - (Math.abs(w) / maxP) * 2.5);
     };
 
@@ -148,10 +144,29 @@ class HiasmEnergyCard extends LitElement {
             <path id="w-bat" class="wire" d="" />
             <path id="w-load" class="wire" d="" />
 
-            ${solarP > 10 ? html`<path id="f-solar" class="flow" stroke="#ffdd00" style="--dur: ${getDur(solarP)}s" d="" />` : ''}
-            ${absGridP > 10 ? html`<path id="f-grid" class="flow" stroke="#00f3ff" style="--dur: ${getDur(gridP)}s" d="" />` : ''}
-            ${absBatP > 10 ? html`<path id="f-bat" class="flow" stroke="#00ff9d" style="--dur: ${getDur(batP)}s" d="" />` : ''}
-            ${loadP > 10 ? html`<path id="f-load" class="flow" stroke="#ff0055" style="--dur: ${getDur(loadP)}s" d="" />` : ''}
+            ${solarP > 10 ? html`
+              <path id="f-solar" class="flow" stroke="#ffdd00" d="">
+                <animate attributeName="stroke-dashoffset" from="132" to="0" dur="${getDur(solarP)}s" repeatCount="indefinite" />
+              </path>
+            ` : ''}
+
+            ${absGridP > 10 ? html`
+              <path id="f-grid" class="flow" stroke="#00f3ff" d="">
+                 <animate attributeName="stroke-dashoffset" from="132" to="0" dur="${getDur(gridP)}s" repeatCount="indefinite" />
+              </path>
+            ` : ''}
+
+            ${absBatP > 10 ? html`
+              <path id="f-bat" class="flow" stroke="#00ff9d" d="">
+                 <animate attributeName="stroke-dashoffset" from="132" to="0" dur="${getDur(batP)}s" repeatCount="indefinite" />
+              </path>
+            ` : ''}
+
+            ${loadP > 10 ? html`
+              <path id="f-load" class="flow" stroke="#ff0055" d="">
+                 <animate attributeName="stroke-dashoffset" from="132" to="0" dur="${getDur(loadP)}s" repeatCount="indefinite" />
+              </path>
+            ` : ''}
           </svg>
 
           <div class="node solar" id="n-solar" @click=${() => this._handlePopup(E.solar)}>
@@ -209,6 +224,7 @@ class HiasmEnergyCard extends LitElement {
 
   updated(changedProps) {
     super.updated(changedProps);
+    // Draw lines after render
     setTimeout(() => this._drawLines(), 50);
   }
 
@@ -223,12 +239,10 @@ class HiasmEnergyCard extends LitElement {
     const iX = (iRect.left + iRect.width / 2) - sRect.left;
     const iY = (iRect.top + iRect.height / 2) - sRect.top;
 
-    // Determine Directions
     const gridP = this._getState(this.config.entities.grid);
     const batP = this._getState(this.config.entities.battery_power);
     const batInv = this.config.battery_invert || false;
 
-    // Logic: to-hub (Node->Inv), from-hub (Inv->Node)
     const dirGrid = gridP >= 0 ? 'to-hub' : 'from-hub';
     let dirBat;
     if (batInv) dirBat = batP > 0 ? 'from-hub' : 'to-hub';
@@ -251,23 +265,18 @@ class HiasmEnergyCard extends LitElement {
         const eX = (eRect.left + eRect.width / 2) - sRect.left;
         const eY = (eRect.top + eRect.height / 2) - sRect.top;
 
-        // Path calculation (Quadratic Bezier)
-        // Midpoint control point for smooth curve
-        const cx = (eX + iX) / 2;
-        const cy = eY; // Horizontal-ish start
-        // Actually, simple midpoint works best for star topology
+        // Path geometry
+        // Quadratic Curve: Start -> Control -> End
+        // We use the midpoint as control X, and start Y as control Y for a generic curve
         const mx = (eX + iX) / 2;
-        const my = (eY + iY) / 2;
-        // Curve: M Start Q Control End.
-        // Let's use the Inverter Y as control point Y for nodes on top, and Inverter Y for nodes on bottom?
-        // Simple Q: M eX eY Q mx eY iX iY (Curve starts horiz)
-        const d = `M ${eX} ${eY} Q ${mx} ${eY} ${iX} ${iY}`;
 
-        wire.setAttribute("d", d);
+        // Always draw static wire from Node to Inverter
+        wire.setAttribute("d", `M ${eX} ${eY} Q ${mx} ${eY} ${iX} ${iY}`);
 
         if (flow) {
-          // If direction is to-hub: Same path
-          // If direction is from-hub: Reverse path
+          // Flow direction: 
+          // to-hub: Node -> Inverter
+          // from-hub: Inverter -> Node
           if (item.dir === 'to-hub') {
             flow.setAttribute("d", `M ${eX} ${eY} Q ${mx} ${eY} ${iX} ${iY}`);
           } else {
