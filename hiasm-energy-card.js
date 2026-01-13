@@ -9,7 +9,7 @@ import {
   css,
 } from "https://unpkg.com/lit-element@2.4.0/lit-element.js?module";
 
-const CARD_VERSION = "3.3.3";
+const CARD_VERSION = "3.3.5";
 
 console.info(
   `%c HIASM ENERGY CARD %c ${CARD_VERSION} `,
@@ -63,15 +63,6 @@ class HiasmEnergyCard extends LitElement {
       this._resizeHandler = () => setTimeout(() => this.requestUpdate(), 200);
       window.addEventListener("resize", this._resizeHandler);
       this._resizeListenerAdded = true;
-    }
-  }
-
-  // Cleanup on disconnect (prevent memory leak)
-  disconnectedCallback() {
-    super.disconnectedCallback();
-    if (this._resizeHandler) {
-      window.removeEventListener("resize", this._resizeHandler);
-      this._resizeListenerAdded = false;
     }
   }
 
@@ -370,8 +361,7 @@ class HiasmEnergyCard extends LitElement {
       return speed;
     };
 
-    // Total power through inverter
-    const totalInverterPower = solarP + Math.abs(batP) + Math.abs(gridP);
+    // Inverter shows Load power (output power)
 
     // Energy cost calculation
     const buyPrice = this.config.buy_price || 0;
@@ -411,66 +401,31 @@ class HiasmEnergyCard extends LitElement {
               </filter>
             </defs>
 
-            <!-- Static wire paths (thicker) -->
+            <!-- Static wire paths -->
             <path id="w-solar" class="wire" d="" />
             <path id="w-grid" class="wire" d="" />
             <path id="w-bat" class="wire" d="" />
             <path id="w-load" class="wire" d="" />
 
-            <!-- Energy Packets - Solar (Yellow bullets) -->
+            <!-- Energy Packets (animated by JS) -->
             ${solarP > 10 ? html`
-              <circle class="energy-packet" r="6" fill="var(--neon-yellow)" filter="url(#glow-yellow)">
-                <animateMotion dur="${getDur(solarP)}s" repeatCount="indefinite">
-                  <mpath href="#w-solar"/>
-                </animateMotion>
-              </circle>
-              <circle class="energy-packet" r="6" fill="var(--neon-yellow)" filter="url(#glow-yellow)">
-                <animateMotion dur="${getDur(solarP)}s" repeatCount="indefinite" begin="${getDur(solarP) / 2}s">
-                  <mpath href="#w-solar"/>
-                </animateMotion>
-              </circle>
+              <circle class="packet packet-solar" r="7" fill="var(--neon-yellow)" filter="url(#glow-yellow)" data-speed="${getDur(solarP)}" data-dir="0"></circle>
+              <circle class="packet packet-solar" r="7" fill="var(--neon-yellow)" filter="url(#glow-yellow)" data-speed="${getDur(solarP)}" data-dir="0" data-offset="0.5"></circle>
             ` : ''}
 
-            <!-- Energy Packets - Grid (Blue bullets) -->
             ${Math.abs(gridP) > 10 ? html`
-              <circle class="energy-packet" r="6" fill="var(--neon-blue)" filter="url(#glow-blue)">
-                <animateMotion dur="${getDur(gridP)}s" repeatCount="indefinite" keyPoints="${isGridImport ? '0;1' : '1;0'}" keyTimes="0;1" calcMode="linear">
-                  <mpath href="#w-grid"/>
-                </animateMotion>
-              </circle>
-              <circle class="energy-packet" r="6" fill="var(--neon-blue)" filter="url(#glow-blue)">
-                <animateMotion dur="${getDur(gridP)}s" repeatCount="indefinite" begin="${getDur(gridP) / 2}s" keyPoints="${isGridImport ? '0;1' : '1;0'}" keyTimes="0;1" calcMode="linear">
-                  <mpath href="#w-grid"/>
-                </animateMotion>
-              </circle>
+              <circle class="packet packet-grid" r="7" fill="var(--neon-blue)" filter="url(#glow-blue)" data-speed="${getDur(gridP)}" data-dir="${isGridImport ? '0' : '1'}"></circle>
+              <circle class="packet packet-grid" r="7" fill="var(--neon-blue)" filter="url(#glow-blue)" data-speed="${getDur(gridP)}" data-dir="${isGridImport ? '0' : '1'}" data-offset="0.5"></circle>
             ` : ''}
 
-            <!-- Energy Packets - Battery (Green bullets) -->
             ${Math.abs(batP) > 10 ? html`
-              <circle class="energy-packet" r="6" fill="var(--neon-green)" filter="url(#glow-green)">
-                <animateMotion dur="${getDur(batP)}s" repeatCount="indefinite" keyPoints="${isBatCharge ? '1;0' : '0;1'}" keyTimes="0;1" calcMode="linear">
-                  <mpath href="#w-bat"/>
-                </animateMotion>
-              </circle>
-              <circle class="energy-packet" r="6" fill="var(--neon-green)" filter="url(#glow-green)">
-                <animateMotion dur="${getDur(batP)}s" repeatCount="indefinite" begin="${getDur(batP) / 2}s" keyPoints="${isBatCharge ? '1;0' : '0;1'}" keyTimes="0;1" calcMode="linear">
-                  <mpath href="#w-bat"/>
-                </animateMotion>
-              </circle>
+              <circle class="packet packet-bat" r="7" fill="var(--neon-green)" filter="url(#glow-green)" data-speed="${getDur(batP)}" data-dir="${isBatCharge ? '1' : '0'}"></circle>
+              <circle class="packet packet-bat" r="7" fill="var(--neon-green)" filter="url(#glow-green)" data-speed="${getDur(batP)}" data-dir="${isBatCharge ? '1' : '0'}" data-offset="0.5"></circle>
             ` : ''}
 
-            <!-- Energy Packets - Load (Red bullets) -->
             ${loadP > 10 ? html`
-              <circle class="energy-packet" r="6" fill="var(--neon-red)" filter="url(#glow-red)">
-                <animateMotion dur="${getDur(loadP)}s" repeatCount="indefinite" keyPoints="1;0" keyTimes="0;1" calcMode="linear">
-                  <mpath href="#w-load"/>
-                </animateMotion>
-              </circle>
-              <circle class="energy-packet" r="6" fill="var(--neon-red)" filter="url(#glow-red)">
-                <animateMotion dur="${getDur(loadP)}s" repeatCount="indefinite" begin="${getDur(loadP) / 2}s" keyPoints="1;0" keyTimes="0;1" calcMode="linear">
-                  <mpath href="#w-load"/>
-                </animateMotion>
-              </circle>
+              <circle class="packet packet-load" r="7" fill="var(--neon-red)" filter="url(#glow-red)" data-speed="${getDur(loadP)}" data-dir="1"></circle>
+              <circle class="packet packet-load" r="7" fill="var(--neon-red)" filter="url(#glow-red)" data-speed="${getDur(loadP)}" data-dir="1" data-offset="0.5"></circle>
             ` : ''}
           </svg>
 
@@ -550,7 +505,7 @@ class HiasmEnergyCard extends LitElement {
           <div class="inverter" id="n-inv" @click=${() => this._handlePopup(E.inverter)}>
             <ha-icon icon="mdi:solar-power"></ha-icon>
             <span class="inv-label">Inverter</span>
-            <span class="inv-power">${totalInverterPower.toFixed(0)} W</span>
+            <span class="inv-power">${loadP.toFixed(0)} W</span>
           </div>
 
         </div>
@@ -576,62 +531,96 @@ class HiasmEnergyCard extends LitElement {
     const iX = (iRect.left + iRect.width / 2) - sRect.left;
     const iY = (iRect.top + iRect.height / 2) - sRect.top;
 
-    // Get power values for direction
-    const gridP = this._getState(this.config.entities.grid);
-    const batP = this._getState(this.config.entities.battery_power);
-    const batteryInvert = this.config.battery_invert || false;
+    // Store paths for animation
+    this._paths = {};
 
-    // Determine battery flow direction
-    // Default: positive = discharging (to-hub), negative = charging (from-hub)
-    // If battery_invert: positive = charging (from-hub), negative = discharging (to-hub)
-    let batDir;
-    if (batteryInvert) {
-      batDir = batP > 0 ? 'from-hub' : 'to-hub'; // Charging = from inverter TO battery
-    } else {
-      batDir = batP >= 0 ? 'to-hub' : 'from-hub'; // Discharging = from battery TO inverter
-    }
-
-    // Node configurations with correct directions
-    const map = [
-      { id: 'n-solar', w: 'w-solar', f: 'f-solar', dir: 'to-hub' },
-      { id: 'n-grid', w: 'w-grid', f: 'f-grid', dir: gridP >= 0 ? 'to-hub' : 'from-hub' },
-      { id: 'n-bat', w: 'w-bat', f: 'f-bat', dir: batDir },
-      { id: 'n-load', w: 'w-load', f: 'f-load', dir: 'from-hub' }
+    // Wire configs
+    const wires = [
+      { id: 'n-solar', w: 'w-solar', packets: 'packet-solar' },
+      { id: 'n-grid', w: 'w-grid', packets: 'packet-grid' },
+      { id: 'n-bat', w: 'w-bat', packets: 'packet-bat' },
+      { id: 'n-load', w: 'w-load', packets: 'packet-load' }
     ];
 
-    map.forEach(item => {
+    wires.forEach(item => {
       const el = root.getElementById(item.id);
       const wire = root.getElementById(item.w);
-      const flow = root.getElementById(item.f);
 
       if (el && wire) {
         const eRect = el.getBoundingClientRect();
         const eX = (eRect.left + eRect.width / 2) - sRect.left;
         const eY = (eRect.top + eRect.height / 2) - sRect.top;
 
-        // Create smooth bezier curve path
-        // Control point at midpoint with offset for curve
-        const midX = (eX + iX) / 2;
-        const midY = (eY + iY) / 2;
+        // Store path endpoints
+        this._paths[item.packets] = {
+          x1: eX, y1: eY,  // Node position
+          x2: iX, y2: iY   // Inverter position
+        };
 
-        // Wire path (always same - just connects both points)
-        const wirePath = `M ${eX} ${eY} Q ${midX} ${eY} ${iX} ${iY}`;
+        // Draw wire
+        const wirePath = `M ${eX} ${eY} Q ${(eX + iX) / 2} ${eY} ${iX} ${iY}`;
         wire.setAttribute("d", wirePath);
-
-        // Flow path follows direction
-        if (flow) {
-          let flowPath;
-          if (item.dir === 'to-hub') {
-            // Energy flows FROM node TO inverter
-            flowPath = `M ${eX} ${eY} Q ${midX} ${eY} ${iX} ${iY}`;
-          } else {
-            // Energy flows FROM inverter TO node
-            flowPath = `M ${iX} ${iY} Q ${midX} ${eY} ${eX} ${eY}`;
-          }
-          flow.setAttribute("d", flowPath);
-        }
       }
     });
+
+    // Start animation
+    this._startPacketAnimation();
+  }
+
+  _startPacketAnimation() {
+    if (this._animationId) cancelAnimationFrame(this._animationId);
+
+    const root = this.shadowRoot;
+    const packets = root.querySelectorAll('.packet');
+    if (!packets.length || !this._paths) return;
+
+    const startTime = performance.now();
+
+    const animate = (currentTime) => {
+      packets.forEach(packet => {
+        const pathKey = packet.classList[1]; // packet-solar, packet-grid, etc.
+        const path = this._paths[pathKey];
+        if (!path) return;
+
+        const speed = parseFloat(packet.dataset.speed) || 1;
+        const dir = parseInt(packet.dataset.dir) || 0; // 0 = node->inverter, 1 = inverter->node
+        const offset = parseFloat(packet.dataset.offset) || 0;
+
+        // Calculate position along path (0 to 1)
+        const duration = speed * 1000; // ms
+        let progress = ((currentTime - startTime + offset * duration) % duration) / duration;
+
+        // Reverse direction if needed
+        if (dir === 1) progress = 1 - progress;
+
+        // Calculate position using quadratic bezier
+        const { x1, y1, x2, y2 } = path;
+        const cx = (x1 + x2) / 2; // Control point x
+        const cy = y1; // Control point y (same as start y for horizontal curve)
+
+        const t = progress;
+        const x = (1 - t) * (1 - t) * x1 + 2 * (1 - t) * t * cx + t * t * x2;
+        const y = (1 - t) * (1 - t) * y1 + 2 * (1 - t) * t * cy + t * t * y2;
+
+        packet.setAttribute('cx', x);
+        packet.setAttribute('cy', y);
+      });
+
+      this._animationId = requestAnimationFrame(animate);
+    };
+
+    this._animationId = requestAnimationFrame(animate);
+  }
+
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    if (this._resizeHandler) {
+      window.removeEventListener("resize", this._resizeHandler);
+      this._resizeListenerAdded = false;
+    }
+    if (this._animationId) {
+      cancelAnimationFrame(this._animationId);
+    }
   }
 }
 
