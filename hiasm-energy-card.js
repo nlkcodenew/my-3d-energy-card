@@ -1,6 +1,6 @@
 /*
- * HIASM 3D ENERGY CARD - V3.5.0 (NATIVE SVG ANIMATION)
- * Fix: Animation flow guaranteed to work using SVG native engine
+ * HIASM 3D ENERGY CARD - V3.6.0 (WORKING FLOW ANIMATION)
+ * Uses getPointAtLength() + requestAnimationFrame like tb-energy-flow-card
  */
 
 import {
@@ -9,7 +9,7 @@ import {
   css,
 } from "https://unpkg.com/lit-element@2.4.0/lit-element.js?module";
 
-const CARD_VERSION = "3.5.0";
+const CARD_VERSION = "3.6.0";
 
 console.info(
   `%c HIASM ENERGY CARD %c ${CARD_VERSION} `,
@@ -34,14 +34,16 @@ class HiasmEnergyCard extends LitElement {
 
   static getConfigElement() { return document.createElement("hiasm-energy-card-editor"); }
 
+  constructor() {
+    super();
+    this._dots = {};
+    this._animationFrame = null;
+    this._lastAnimateTime = null;
+  }
+
   setConfig(config) {
     if (!config.entities) throw new Error("Please check config via Editor.");
     this.config = config;
-    if (!this._resizeListenerAdded) {
-      this._resizeHandler = () => setTimeout(() => this.requestUpdate(), 200);
-      window.addEventListener("resize", this._resizeHandler);
-      this._resizeListenerAdded = true;
-    }
   }
 
   static get styles() {
@@ -78,20 +80,12 @@ class HiasmEnergyCard extends LitElement {
       .status-export { background: rgba(0, 243, 255, 0.2); color: var(--neon-blue); }
       .c-solar { color: var(--neon-yellow); } .c-grid { color: var(--neon-blue); } .c-bat { color: var(--neon-green); } .c-load { color: var(--neon-red); }
       
-      /* SVG CONNECTIONS */
+      /* SVG */
       svg.connections { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 3; overflow: visible; }
-      path.wire { fill: none; stroke: rgba(255,255,255,0.1); stroke-width: 3; }
+      path.wire { fill: none; stroke: rgba(255,255,255,0.12); stroke-width: 3; }
       
-      /* IMPORTANT: Path Flow Styling */
-      path.flow {
-        fill: none;
-        stroke-width: 6;
-        stroke-linecap: round;
-        /* Define the dash pattern here */
-        stroke-dasharray: 12 120; /* 12px dot, 120px gap */
-        filter: drop-shadow(0 0 5px currentColor);
-        opacity: 0.9;
-      }
+      /* Flow Dots */
+      .flow-dot { filter: drop-shadow(0 0 6px currentColor); }
     `;
   }
 
@@ -104,7 +98,6 @@ class HiasmEnergyCard extends LitElement {
   render() {
     if (!this.hass || !this.config) return html``;
     const E = this.config.entities;
-    const maxP = this.config.max_power || 5000;
     const t = (k) => this._t(k);
 
     const solarP = this._getState(E.solar);
@@ -119,14 +112,6 @@ class HiasmEnergyCard extends LitElement {
     const absBatP = Math.abs(batP);
     const absGridP = Math.abs(gridP);
 
-    // Calculate Animation Speed (Duration in seconds)
-    // Fast = 0.5s, Slow = 3s
-    const getDur = (w) => {
-      if (Math.abs(w) < 5) return 0; // Stop
-      // More power = Less duration (Faster)
-      return Math.max(0.5, 3 - (Math.abs(w) / maxP) * 2.5);
-    };
-
     const buyPrice = this.config.buy_price || 0;
     const sellPrice = this.config.sell_price || 0;
     const currency = this.config.currency || 'đ';
@@ -139,34 +124,17 @@ class HiasmEnergyCard extends LitElement {
         <div class="bg-grid"></div>
         <div class="scene" id="scene">
           <svg class="connections">
+            <!-- Wires -->
             <path id="w-solar" class="wire" d="" />
             <path id="w-grid" class="wire" d="" />
             <path id="w-bat" class="wire" d="" />
             <path id="w-load" class="wire" d="" />
 
-            ${solarP > 10 ? html`
-              <path id="f-solar" class="flow" stroke="#ffdd00" d="">
-                <animate attributeName="stroke-dashoffset" from="132" to="0" dur="${getDur(solarP)}s" repeatCount="indefinite" />
-              </path>
-            ` : ''}
-
-            ${absGridP > 10 ? html`
-              <path id="f-grid" class="flow" stroke="#00f3ff" d="">
-                 <animate attributeName="stroke-dashoffset" from="132" to="0" dur="${getDur(gridP)}s" repeatCount="indefinite" />
-              </path>
-            ` : ''}
-
-            ${absBatP > 10 ? html`
-              <path id="f-bat" class="flow" stroke="#00ff9d" d="">
-                 <animate attributeName="stroke-dashoffset" from="132" to="0" dur="${getDur(batP)}s" repeatCount="indefinite" />
-              </path>
-            ` : ''}
-
-            ${loadP > 10 ? html`
-              <path id="f-load" class="flow" stroke="#ff0055" d="">
-                 <animate attributeName="stroke-dashoffset" from="132" to="0" dur="${getDur(loadP)}s" repeatCount="indefinite" />
-              </path>
-            ` : ''}
+            <!-- Flow Dots (animated by JS) -->
+            <circle id="dot-solar" class="flow-dot" r="6" fill="#ffdd00" style="display: none;" />
+            <circle id="dot-grid" class="flow-dot" r="6" fill="#00f3ff" style="display: none;" />
+            <circle id="dot-bat" class="flow-dot" r="6" fill="#00ff9d" style="display: none;" />
+            <circle id="dot-load" class="flow-dot" r="6" fill="#ff0055" style="display: none;" />
           </svg>
 
           <div class="node solar" id="n-solar" @click=${() => this._handlePopup(E.solar)}>
@@ -224,11 +192,14 @@ class HiasmEnergyCard extends LitElement {
 
   updated(changedProps) {
     super.updated(changedProps);
-    // Draw lines after render
-    setTimeout(() => this._drawLines(), 50);
+    // Draw wires and setup animation after DOM ready
+    setTimeout(() => {
+      this._drawWires();
+      this._setupDots();
+    }, 100);
   }
 
-  _drawLines() {
+  _drawWires() {
     const root = this.shadowRoot;
     const inv = root.getElementById('n-inv');
     const scene = root.getElementById('scene');
@@ -239,57 +210,133 @@ class HiasmEnergyCard extends LitElement {
     const iX = (iRect.left + iRect.width / 2) - sRect.left;
     const iY = (iRect.top + iRect.height / 2) - sRect.top;
 
-    const gridP = this._getState(this.config.entities.grid);
-    const batP = this._getState(this.config.entities.battery_power);
-    const batInv = this.config.battery_invert || false;
+    const nodes = ['n-solar', 'n-grid', 'n-bat', 'n-load'];
+    const wires = ['w-solar', 'w-grid', 'w-bat', 'w-load'];
 
-    const dirGrid = gridP >= 0 ? 'to-hub' : 'from-hub';
-    let dirBat;
-    if (batInv) dirBat = batP > 0 ? 'from-hub' : 'to-hub';
-    else dirBat = batP >= 0 ? 'to-hub' : 'from-hub';
+    nodes.forEach((nodeId, i) => {
+      const el = root.getElementById(nodeId);
+      const wire = root.getElementById(wires[i]);
+      if (!el || !wire) return;
 
-    const wires = [
-      { id: 'n-solar', w: 'w-solar', f: 'f-solar', dir: 'to-hub' },
-      { id: 'n-grid', w: 'w-grid', f: 'f-grid', dir: dirGrid },
-      { id: 'n-bat', w: 'w-bat', f: 'f-bat', dir: dirBat },
-      { id: 'n-load', w: 'w-load', f: 'f-load', dir: 'from-hub' }
-    ];
+      const eRect = el.getBoundingClientRect();
+      const eX = (eRect.left + eRect.width / 2) - sRect.left;
+      const eY = (eRect.top + eRect.height / 2) - sRect.top;
+      const mx = (eX + iX) / 2;
 
-    wires.forEach(item => {
-      const el = root.getElementById(item.id);
-      const wire = root.getElementById(item.w);
-      const flow = root.getElementById(item.f);
-
-      if (el && wire) {
-        const eRect = el.getBoundingClientRect();
-        const eX = (eRect.left + eRect.width / 2) - sRect.left;
-        const eY = (eRect.top + eRect.height / 2) - sRect.top;
-
-        // Path geometry
-        // Quadratic Curve: Start -> Control -> End
-        // We use the midpoint as control X, and start Y as control Y for a generic curve
-        const mx = (eX + iX) / 2;
-
-        // Always draw static wire from Node to Inverter
-        wire.setAttribute("d", `M ${eX} ${eY} Q ${mx} ${eY} ${iX} ${iY}`);
-
-        if (flow) {
-          // Flow direction: 
-          // to-hub: Node -> Inverter
-          // from-hub: Inverter -> Node
-          if (item.dir === 'to-hub') {
-            flow.setAttribute("d", `M ${eX} ${eY} Q ${mx} ${eY} ${iX} ${iY}`);
-          } else {
-            flow.setAttribute("d", `M ${iX} ${iY} Q ${mx} ${eY} ${eX} ${eY}`);
-          }
-        }
-      }
+      // Draw wire from node to inverter
+      wire.setAttribute("d", `M ${eX} ${eY} Q ${mx} ${eY} ${iX} ${iY}`);
     });
+  }
+
+  _setupDots() {
+    if (!this.hass || !this.config) return;
+    const root = this.shadowRoot;
+    const E = this.config.entities;
+    const maxP = this.config.max_power || 5000;
+
+    const solarP = this._getState(E.solar);
+    const gridP = this._getState(E.grid);
+    const batP = this._getState(E.battery_power);
+    const loadP = this._getState(E.load) || Math.abs(solarP + gridP + batP);
+    const batteryInvert = this.config.battery_invert || false;
+
+    // Speed calculation: higher power = faster (shorter duration)
+    const getSpeed = (val) => {
+      if (Math.abs(val) < 5) return 0; // Stop
+      // Return pixels per second (pathLength will be ~200-300px)
+      return 50 + (Math.abs(val) / maxP) * 200; // 50-250 px/s
+    };
+
+    const setupDot = (key, value, reverse) => {
+      const dotEl = root.getElementById(`dot-${key}`);
+      const wireEl = root.getElementById(`w-${key}`);
+      if (!dotEl || !wireEl) return;
+
+      if (!this._dots[key]) {
+        this._dots[key] = {
+          element: dotEl,
+          path: wireEl,
+          pathLength: 0,
+          currentPos: 0,
+          active: false,
+          speed: 0,
+          reverse: false,
+        };
+      }
+
+      const dot = this._dots[key];
+      dot.pathLength = wireEl.getTotalLength ? wireEl.getTotalLength() : 200;
+      dot.active = Math.abs(value) > 5;
+      dot.reverse = reverse;
+      dot.speed = getSpeed(value);
+      dotEl.style.display = dot.active ? 'inline' : 'none';
+    };
+
+    // Solar: always to inverter (reverse=false means start->end = node->inverter)
+    setupDot('solar', solarP, false);
+
+    // Grid: import (>0) = to inverter, export (<0) = from inverter
+    setupDot('grid', gridP, gridP < 0);
+
+    // Battery: charge = from inverter, discharge = to inverter
+    // Default: positive = discharge (to inverter), negative = charge (from inverter)
+    // If battery_invert: positive = charge (from inverter), negative = discharge (to inverter)
+    const batReverse = batteryInvert ? (batP > 0) : (batP < 0);
+    setupDot('bat', batP, batReverse);
+
+    // Load: always from inverter (reverse=true)
+    setupDot('load', loadP, true);
+
+    // Start animation if not running
+    if (!this._animationFrame) {
+      this._animationFrame = requestAnimationFrame(this._animateDots.bind(this));
+    }
+  }
+
+  _animateDots(timestamp) {
+    if (!this._lastAnimateTime) this._lastAnimateTime = timestamp;
+    const deltaTime = (timestamp - this._lastAnimateTime) / 1000;
+    this._lastAnimateTime = timestamp;
+
+    for (const key in this._dots) {
+      const dot = this._dots[key];
+      if (!dot.active || !dot.path || dot.pathLength === 0) continue;
+
+      let newPos = dot.currentPos;
+      if (dot.reverse) {
+        newPos -= dot.speed * deltaTime;
+        if (newPos < 0) newPos += dot.pathLength;
+      } else {
+        newPos += dot.speed * deltaTime;
+        if (newPos > dot.pathLength) newPos -= dot.pathLength;
+      }
+      dot.currentPos = newPos;
+
+      try {
+        const point = dot.path.getPointAtLength(dot.currentPos);
+        dot.element.setAttribute('cx', point.x);
+        dot.element.setAttribute('cy', point.y);
+      } catch (e) {
+        // Path not ready, skip
+      }
+    }
+
+    this._animationFrame = requestAnimationFrame(this._animateDots.bind(this));
+  }
+
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    if (this._animationFrame) {
+      cancelAnimationFrame(this._animationFrame);
+      this._animationFrame = null;
+    }
+    this._dots = {};
   }
 }
 
 customElements.define("hiasm-energy-card", HiasmEnergyCard);
 
+// ----------------------- EDITOR -----------------------
 class HiasmEnergyCardEditor extends LitElement {
   static get properties() { return { hass: {}, config: {} }; }
   setConfig(config) { this.config = config; }
