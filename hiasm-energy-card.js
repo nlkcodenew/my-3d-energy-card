@@ -9,7 +9,7 @@ import {
   css,
 } from "https://unpkg.com/lit-element@2.4.0/lit-element.js?module";
 
-const CARD_VERSION = "3.2.0";
+const CARD_VERSION = "3.2.1";
 
 console.info(
   `%c HIASM ENERGY CARD %c ${CARD_VERSION} `,
@@ -31,6 +31,7 @@ class HiasmEnergyCard extends LitElement {
       buy_price: 3000,
       sell_price: 2000,
       currency: "đ",
+      battery_invert: false,
       entities: {
         solar: "sensor.solar_power",
         solar_daily: "sensor.solar_energy_daily",
@@ -302,22 +303,22 @@ class HiasmEnergyCard extends LitElement {
         stroke-width: 3;
       }
 
-      /* ELECTRIC FLOW EFFECT - Fixed with proper dasharray */
+      /* ELECTRIC FLOW EFFECT */
       path.flow {
         fill: none;
-        stroke-width: 4;
+        stroke-width: 5;
         stroke-linecap: round;
-        stroke-dasharray: 15 20;
-        filter: blur(0.5px);
+        stroke-dasharray: 12 8;
+        opacity: 0.9;
       }
 
-      /* Flow animations defined properly */
+      /* Flow animations */
       .flow-active {
-        animation: flow-move 2s linear infinite;
+        animation: flow-move var(--flow-speed, 1s) linear infinite;
       }
 
       @keyframes flow-move {
-        0% { stroke-dashoffset: 35; }
+        0% { stroke-dashoffset: 20; }
         100% { stroke-dashoffset: 0; }
       }
     `;
@@ -365,9 +366,12 @@ class HiasmEnergyCard extends LitElement {
     const batSoc = this._getState(E.battery_soc);
     const loadP = this._getState(E.load) || Math.abs(solarP + gridP + batP);
 
-    // Directions
+    // Directions - with invert option for battery
     const isGridImport = gridP > 0;
-    const isBatCharge = batP < 0;
+    const batteryInvert = this.config.battery_invert || false;
+    // If battery_invert is true: positive = charging, negative = discharging
+    // Default (false): positive = discharging, negative = charging
+    const isBatCharge = batteryInvert ? (batP > 0) : (batP < 0);
 
     // Animation Duration based on power
     const getDur = (w) => {
@@ -573,16 +577,23 @@ class HiasmEnergyCard extends LitElement {
     // Get power values for direction
     const gridP = this._getState(this.config.entities.grid);
     const batP = this._getState(this.config.entities.battery_power);
+    const batteryInvert = this.config.battery_invert || false;
+
+    // Determine battery flow direction
+    // Default: positive = discharging (to-hub), negative = charging (from-hub)
+    // If battery_invert: positive = charging (from-hub), negative = discharging (to-hub)
+    let batDir;
+    if (batteryInvert) {
+      batDir = batP > 0 ? 'from-hub' : 'to-hub'; // Charging = from inverter TO battery
+    } else {
+      batDir = batP >= 0 ? 'to-hub' : 'from-hub'; // Discharging = from battery TO inverter
+    }
 
     // Node configurations with correct directions
-    // Solar: Always TO inverter (generating)
-    // Grid: Import (>0) = TO inverter, Export (<0) = FROM inverter  
-    // Battery: Discharge (>0) = TO inverter, Charge (<0) = FROM inverter
-    // Load: Always FROM inverter (consuming)
     const map = [
       { id: 'n-solar', w: 'w-solar', f: 'f-solar', dir: 'to-hub' },
       { id: 'n-grid', w: 'w-grid', f: 'f-grid', dir: gridP >= 0 ? 'to-hub' : 'from-hub' },
-      { id: 'n-bat', w: 'w-bat', f: 'f-bat', dir: batP >= 0 ? 'to-hub' : 'from-hub' },
+      { id: 'n-bat', w: 'w-bat', f: 'f-bat', dir: batDir },
       { id: 'n-load', w: 'w-load', f: 'f-load', dir: 'from-hub' }
     ];
 
@@ -708,6 +719,18 @@ class HiasmEnergyCardEditor extends LitElement {
         ${this._inp("Battery Power (W)", "battery_power", E.battery_power, true)}
         ${this._inp("Battery Charge Daily", "battery_daily_charge", E.battery_daily_charge, true)}
         ${this._inp("Battery Discharge Daily", "battery_daily_discharge", E.battery_daily_discharge, true)}
+        <div class="config-row">
+          <label>
+            <input type="checkbox" 
+                   .checked=${this.config.battery_invert || false}
+                   @change=${(e) => {
+        const event = new Event("config-changed", { bubbles: true, composed: true });
+        event.detail = { config: { ...this.config, battery_invert: e.target.checked } };
+        this.dispatchEvent(event);
+      }}>
+            Đảo ngược dấu pin (nếu + = sạc)
+          </label>
+        </div>
         
         <h3>🏠 Tải tiêu thụ</h3>
         ${this._inp("Load Power (W)", "load", E.load, true)}
