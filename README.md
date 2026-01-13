@@ -1,191 +1,223 @@
-# HIASM 3D Energy Card for Home Assistant
+# HIASM Energy Card
 
-[![Version](https://img.shields.io/badge/version-3.2.0-blue.svg)](https://github.com/hiasm/energy-card)
-[![HACS](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://hacs.xyz)
+<p align="center">
+  <img src="https://img.shields.io/badge/version-3.7.0-blue?style=for-the-badge" alt="Version">
+  <img src="https://img.shields.io/badge/HACS-Default-orange?style=for-the-badge" alt="HACS">
+  <img src="https://img.shields.io/badge/Home%20Assistant-2024.1+-green?style=for-the-badge" alt="HA">
+</p>
 
-A custom Lovelace card that visualizes your home energy flow in a stunning 3D/Hologram style with animated electric flows.
+A beautiful 3D-styled energy flow card for Home Assistant with animated power flows, customizable colors, and multi-language support.
 
-![Preview](preview.png)
-
-## ✨ Features
-
-### Core Features
-- **3D Visualization**: Solar, Grid, Battery, Load nodes arranged around central Inverter hub
-- **Dynamic Electric Flow**: Animated energy flow with speed based on power (W)
-- **Glassmorphism UI**: Modern glass effects with neon glows and backdrop blur
-- **Smart Connections**: SVG paths connect nodes dynamically, auto-adjusting on resize
-
-### V3.2 New Features
-- **📱 Responsive Design**: Optimized for mobile screens (< 400px)
-- **🎨 Theme Support**: Auto-adapts to Home Assistant light/dark themes
-- **💰 Energy Cost Display**: Shows buy/sell costs in your currency
-- **🔋 Dynamic Battery Icon**: Icon changes based on SoC level
-- **⚡ Status Badges**: Visual indicators for charging/discharging, import/export
+Thẻ năng lượng 3D đẹp mắt cho Home Assistant với dòng chảy năng lượng động, màu sắc tùy chỉnh và hỗ trợ đa ngôn ngữ.
 
 ---
 
-## 📦 Installation
+## ✨ Features / Tính năng
+
+| Feature | Description / Mô tả |
+|---------|---------------------|
+| 🎯 **Animated Flow** | Multiple animated dots show energy direction / Nhiều chấm động hiển thị hướng năng lượng |
+| 📊 **Self-Sufficiency** | Shows % of load covered by solar / Hiển thị % tải được cấp bởi solar |
+| 🎨 **Custom Colors** | Override default neon colors / Tùy chỉnh màu neon mặc định |
+| 💡 **Node Pulse** | Nodes pulse when high power flow / Node nhấp nháy khi công suất cao |
+| 🌐 **Multi-Language** | English & Vietnamese support / Hỗ trợ tiếng Anh & Việt |
+| 📱 **Responsive** | Works on mobile & desktop / Hoạt động trên mobile & desktop |
+| 🌙 **Theme Support** | Adapts to HA light/dark themes / Tự động theo theme HA |
+
+---
+
+## 📦 Installation / Cài đặt
 
 ### HACS (Recommended)
-1. Open HACS → Frontend
-2. Click ⋮ → Custom repositories
-3. Add URL: `https://github.com/hiasm/3d-energy-card`
-4. Select category: **Lovelace**
-5. Search for "HIASM Energy Card" and install
 
-### Manual Installation
-1. Download `hiasm-energy-card.js`
+1. Open HACS → Frontend → + Explore & Download Repositories
+2. Search for "HIASM Energy Card"
+3. Click Download
+4. Restart Home Assistant
+
+### Manual
+
+1. Download `hiasm-energy-card.js` from the latest release
 2. Copy to `/config/www/hiasm-energy-card.js`
-3. Add resource in **Settings → Dashboards → Resources**:
+3. Add to Lovelace resources:
    ```yaml
-   url: /local/hiasm-energy-card.js
-   type: module
+   resources:
+     - url: /local/hiasm-energy-card.js
+       type: module
    ```
-4. Refresh your browser (Ctrl+F5)
 
 ---
 
-## ⚙️ Configuration
+## ⚙️ Configuration / Cấu hình
 
-### Full Example
+### Basic / Cơ bản
+
 ```yaml
 type: custom:hiasm-energy-card
 max_power: 5000
-
-# Energy Cost (optional)
-buy_price: 3000      # đ/kWh - Grid import price
-sell_price: 2000     # đ/kWh - Grid export price
-currency: "đ"        # Currency symbol
-
-entities:
-  # Solar
-  solar: sensor.solar_power              # Công suất solar (W)
-  solar_daily: sensor.solar_energy_daily # Sản lượng hôm nay (kWh)
-  
-  # Grid
-  grid: sensor.grid_power                # Công suất lưới (W), + = nhập, - = xuất
-  grid_buy_daily: sensor.grid_import     # Điện mua hôm nay (kWh)
-  grid_sell_daily: sensor.grid_export    # Điện bán hôm nay (kWh)
-  
-  # Battery
-  battery_soc: sensor.battery_level      # Dung lượng pin (%)
-  battery_power: sensor.battery_power    # Công suất pin (W), + = xả, - = sạc
-  battery_daily_charge: sensor.bat_charge_daily     # Điện sạc hôm nay
-  battery_daily_discharge: sensor.bat_discharge_daily # Điện xả hôm nay
-  
-  # Load
-  load: sensor.load_power                # Công suất tiêu thụ (W)
-  load_daily: sensor.load_energy_daily   # Tiêu thụ hôm nay (kWh)
-  
-  # Inverter (optional)
-  inverter: sensor.inverter_power        # Entity cho popup
-```
-
-### Minimal Example
-```yaml
-type: custom:hiasm-energy-card
+language: vi
 entities:
   solar: sensor.solar_power
+  solar_daily: sensor.solar_energy_daily
   grid: sensor.grid_power
+  grid_buy_daily: sensor.grid_import_daily
+  grid_sell_daily: sensor.grid_export_daily
   battery_soc: sensor.battery_level
   battery_power: sensor.battery_power
+  battery_daily_charge: sensor.battery_charge_daily
+  battery_daily_discharge: sensor.battery_discharge_daily
+  load: sensor.load_power
+  load_daily: sensor.load_energy_daily
+  inverter_temp: sensor.inverter_temperature
+```
+
+### Full Options / Đầy đủ
+
+```yaml
+type: custom:hiasm-energy-card
+max_power: 5000
+language: vi  # en | vi
+dots_per_line: 3  # 1-5 dots per flow line
+show_self_sufficiency: true  # Show self-sufficiency %
+battery_invert: false  # Invert battery sign convention
+buy_price: 3000  # Cost per kWh (VND)
+sell_price: 2000  # Sell price per kWh
+currency: "đ"
+
+# Custom colors (optional)
+colors:
+  solar: "#ffdd00"
+  grid: "#00f3ff"
+  battery: "#00ff9d"
+  load: "#ff0055"
+  inverter: "#a855f7"
+
+entities:
+  solar: sensor.solar_power
+  solar_daily: sensor.solar_energy_daily
+  pv1: sensor.pv1_power  # Optional
+  pv2: sensor.pv2_power  # Optional
+  grid: sensor.grid_power
+  grid_buy_daily: sensor.grid_import_daily
+  grid_sell_daily: sensor.grid_export_daily
+  battery_soc: sensor.battery_level
+  battery_power: sensor.battery_power
+  battery_daily_charge: sensor.battery_charge_daily
+  battery_daily_discharge: sensor.battery_discharge_daily
+  load: sensor.load_power
+  load_daily: sensor.load_energy_daily
+  inverter_temp: sensor.inverter_temperature
 ```
 
 ---
 
-## 📊 Entity Conventions
+## 📐 Entity Sign Conventions / Quy ước dấu
 
-| Entity | Unit | Sign Convention |
-|--------|------|-----------------|
-| `solar` | W | Always positive (generating) |
-| `grid` | W | **Positive** = importing (buying), **Negative** = exporting (selling) |
-| `battery_power` | W | **Positive** = discharging, **Negative** = charging |
-| `load` | W | Always positive (consuming) |
-| `*_daily` | kWh | Cumulative energy for today |
+| Entity | Positive (+) | Negative (-) |
+|--------|--------------|--------------|
+| `grid` | Import from grid / Nhập từ lưới | Export to grid / Xuất ra lưới |
+| `battery_power` | Discharge / Xả pin | Charge / Sạc pin |
+
+> 💡 If your inverter uses opposite convention, enable `battery_invert: true`
+>
+> Nếu inverter của bạn dùng quy ước ngược, bật `battery_invert: true`
 
 ---
 
-## 💰 Energy Cost Display
+## 🎨 Custom Colors / Tùy chỉnh màu
 
-When `buy_price` and `sell_price` are configured:
-- **Importing**: Shows `-12.5kđ` in red (cost)
-- **Exporting**: Shows `+8.2kđ` in green (earnings)
+Override default colors in your config:
 
-Formula:
+```yaml
+colors:
+  solar: "#ffa500"    # Orange solar
+  grid: "#0066ff"     # Blue grid
+  battery: "#00cc44"  # Green battery
+  load: "#cc0033"     # Red load
+  inverter: "#9933ff" # Purple inverter
 ```
-Buy Cost = grid_buy_daily (kWh) × buy_price
-Sell Earnings = grid_sell_daily (kWh) × sell_price
+
+---
+
+## 📊 Self-Sufficiency Calculation / Tính toán tự cấp
+
+The self-sufficiency percentage shows how much of your load is covered by solar:
+
+**Formula / Công thức:**
+```
+Self% = (Solar Used Locally / Load) × 100
+Solar Used Locally = Solar Production - Grid Export
 ```
 
----
-
-## 🎨 Theme Support
-
-The card automatically uses Home Assistant theme variables:
-
-| CSS Variable | Fallback | Usage |
-|--------------|----------|-------|
-| `--ha-card-background` | `#141414` | Card background |
-| `--primary-text-color` | `#fff` | Main text |
-| `--secondary-text-color` | `#888` | Secondary text |
-| `--divider-color` | `rgba(255,255,255,0.1)` | Borders |
-
-Works with both **Light** and **Dark** themes out of the box.
+**Example / Ví dụ:**
+- Solar: 3000W, Load: 2500W, Export: 500W
+- Self% = (3000 - 500) / 2500 × 100 = **100%**
 
 ---
 
-## 📱 Responsive Breakpoints
+## 🔧 Troubleshooting / Xử lý sự cố
 
-| Screen Width | Adjustments |
-|--------------|-------------|
-| < 400px | Smaller nodes (100px), reduced padding, smaller fonts |
-| ≥ 400px | Full size nodes (120px), standard layout |
+### Animation not showing / Animation không hiển thị
+1. Clear browser cache: `Ctrl + Shift + R`
+2. Check console for errors: `F12` → Console
+3. Verify card version shows `3.7.0`
 
----
+### Wrong battery direction / Hướng pin sai
+Enable `battery_invert: true` in config
 
-## 🔧 Troubleshooting
-
-### Card not showing
-1. Clear browser cache (Ctrl+Shift+R)
-2. Check browser console for errors (F12)
-3. Verify resource is loaded correctly
-
-### Flow animation not working
-- Ensure power values are > 10W (threshold for animation)
-- Check entity values in Developer Tools → States
-
-### Wrong flow direction
-- Verify your inverter's sign convention matches:
-  - Grid: positive = import, negative = export
-  - Battery: positive = discharge, negative = charge
+### Dots moving too fast/slow / Chấm chạy quá nhanh/chậm
+Adjust `max_power` to match your system's peak power
 
 ---
 
 ## 📝 Changelog
 
-### V3.2.0 (2026-01-13)
-- ✅ Responsive design for mobile
-- ✅ Home Assistant theme support (light/dark)
-- ✅ Energy cost display with buy/sell prices
-- ✅ Visual Editor improvements
+### v3.7.0 (2026-01-13)
+- ✨ **Multiple dots per flow line** (configurable 1-5)
+- ✨ **Self-sufficiency percentage** display
+- ✨ **Customizable colors** via config
+- ✨ **Node pulse animation** when power > 30%
+- ✨ **Enhanced glow effect** on flow dots
+- 🔧 Improved editor layout
 
-### V3.1.0
-- Fixed memory leak (resize listener cleanup)
-- Improved inverter hub display with total power
-- Dynamic battery icons based on SoC
-- Status badges (charging/discharging, import/export)
+### v3.6.0 (2026-01-13)
+- 🎉 **Working flow animation** using `getPointAtLength()`
+- 🔧 Fixed animation timing issues
 
-### V3.0.0
-- Initial release with 3D visualization
-- Dynamic SVG path connections
-- Electric flow animations
+### v3.5.0 - v3.3.0
+- Various animation attempts and fixes
+
+### v3.2.0 (2026-01-13)
+- ✨ Responsive design
+- ✨ HA theme support
+- ✨ Energy cost calculation
+- ✨ Multi-language (EN/VI)
+
+### v3.1.0 (2026-01-13)
+- 🔧 Memory leak fixes
+- ✨ Dynamic battery icons
+- ✨ Status badges
+
+### v3.0.0 (2026-01-13)
+- 🎉 Initial release with 3D design
 
 ---
 
 ## 📄 License
 
-MIT License - Free to use and modify.
+MIT License - Feel free to modify and share!
 
 ---
 
-**Made with ⚡ by HIASM**
+## 🙏 Credits
+
+- Inspired by [Power Flow Card Plus](https://github.com/flixlix/power-flow-card-plus)
+- Animation pattern from [TB Energy Flow Card](https://github.com/tongtbgl/tb-energy-flow-card)
+- Built with [LitElement](https://lit.dev/)
+
+---
+
+<p align="center">
+  Made with ❤️ by HIASM<br>
+  <a href="https://github.com/hiasm/hiasm-energy-card">GitHub</a>
+</p>

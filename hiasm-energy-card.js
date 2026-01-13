@@ -1,6 +1,6 @@
 /*
- * HIASM 3D ENERGY CARD - V3.6.0 (WORKING FLOW ANIMATION)
- * Uses getPointAtLength() + requestAnimationFrame like tb-energy-flow-card
+ * HIASM 3D ENERGY CARD - V3.7.0 (ENHANCED EDITION)
+ * Features: Multi-dots, Self-sufficiency %, Customizable colors, Glow effects, Node pulse
  */
 
 import {
@@ -9,7 +9,7 @@ import {
   css,
 } from "https://unpkg.com/lit-element@2.4.0/lit-element.js?module";
 
-const CARD_VERSION = "3.6.0";
+const CARD_VERSION = "1.0.1";
 
 console.info(
   `%c HIASM ENERGY CARD %c ${CARD_VERSION} `,
@@ -18,8 +18,16 @@ console.info(
 );
 
 const TRANSLATIONS = {
-  en: { solar: "Solar", grid: "Grid", battery: "Battery", load: "Consumption", inverter: "Inverter", today: "Today", buy: "Buy", sell: "Sell", importing: "← Import", exporting: "→ Export", charging: "⚡ Charging", discharging: "↗ Discharging", charge: "Charge", discharge: "Discharge" },
-  vi: { solar: "Solar", grid: "Lưới điện", battery: "Pin", load: "Tiêu thụ", inverter: "Inverter", today: "Hôm nay", buy: "Mua", sell: "Bán", importing: "← Nhập", exporting: "→ Xuất", charging: "⚡ Đang sạc", discharging: "↗ Đang xả", charge: "Sạc", discharge: "Xả" }
+  en: { solar: "Solar", grid: "Grid", battery: "Battery", load: "Consumption", inverter: "Inverter", today: "Today", buy: "Buy", sell: "Sell", importing: "← Import", exporting: "→ Export", charging: "⚡ Charging", discharging: "↗ Discharging", charge: "Charge", discharge: "Discharge", self: "Self" },
+  vi: { solar: "Solar", grid: "Lưới điện", battery: "Pin", load: "Tiêu thụ", inverter: "Inverter", today: "Hôm nay", buy: "Mua", sell: "Bán", importing: "← Nhập", exporting: "→ Xuất", charging: "⚡ Đang sạc", discharging: "↗ Đang xả", charge: "Sạc", discharge: "Xả", self: "Tự cấp" }
+};
+
+const DEFAULT_COLORS = {
+  solar: "#ffdd00",
+  grid: "#00f3ff",
+  battery: "#00ff9d",
+  load: "#ff0055",
+  inverter: "#a855f7"
 };
 
 class HiasmEnergyCard extends LitElement {
@@ -28,6 +36,9 @@ class HiasmEnergyCard extends LitElement {
   static getStubConfig() {
     return {
       max_power: 5000, buy_price: 3000, sell_price: 2000, currency: "đ", language: "vi", battery_invert: false,
+      dots_per_line: 3, // NEW: Number of dots per flow line
+      show_self_sufficiency: true, // NEW: Show self-sufficiency %
+      colors: {}, // NEW: Custom colors override
       entities: { solar: "sensor.solar_power", solar_daily: "sensor.solar_energy_daily", grid: "sensor.grid_power", grid_buy_daily: "sensor.grid_import_daily", grid_sell_daily: "sensor.grid_export_daily", battery_soc: "sensor.battery_level", battery_power: "sensor.battery_power", battery_daily_charge: "sensor.battery_charge_daily", battery_daily_discharge: "sensor.battery_discharge_daily", load: "sensor.load_power", load_daily: "sensor.load_energy_daily", inverter_temp: "sensor.inverter_temperature" }
     };
   }
@@ -46,46 +57,58 @@ class HiasmEnergyCard extends LitElement {
     this.config = config;
   }
 
+  // Get color with custom override support
+  _getColor(key) {
+    return this.config?.colors?.[key] || DEFAULT_COLORS[key] || "#ffffff";
+  }
+
   static get styles() {
     return css`
-      :host { display: block; padding: 0; --neon-blue: #00f3ff; --neon-green: #00ff9d; --neon-red: #ff0055; --neon-yellow: #ffdd00; --neon-purple: #a855f7; --bg-card: var(--ha-card-background, #141414); --text-primary: var(--primary-text-color, #fff); --text-secondary: var(--secondary-text-color, #888); --border-color: var(--divider-color, rgba(255,255,255,0.1)); }
+      :host { display: block; padding: 0; --bg-card: var(--ha-card-background, #141414); --text-primary: var(--primary-text-color, #fff); --text-secondary: var(--secondary-text-color, #888); --border-color: var(--divider-color, rgba(255,255,255,0.1)); }
       ha-card { background: var(--bg-card); overflow: hidden; border-radius: 16px; position: relative; height: 420px; border: 1px solid var(--border-color); }
       @media (max-width: 400px) { ha-card { height: 380px; } }
       .bg-grid { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-image: linear-gradient(var(--border-color) 1px, transparent 1px), linear-gradient(90deg, var(--border-color) 1px, transparent 1px); background-size: 40px 40px; mask-image: radial-gradient(circle at center, black 40%, transparent 100%); opacity: 0.5; }
       .scene { width: 100%; height: 100%; position: relative; perspective: 1000px; }
-      .node { position: absolute; width: 120px; padding: 10px; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; display: flex; flex-direction: column; align-items: center; color: var(--text-primary); z-index: 5; box-shadow: 0 4px 15px rgba(0,0,0,0.5); transition: transform 0.3s ease; cursor: pointer; backdrop-filter: blur(10px); }
+      
+      /* NODES with pulse animation */
+      .node { position: absolute; width: 120px; padding: 10px; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; display: flex; flex-direction: column; align-items: center; color: var(--text-primary); z-index: 5; box-shadow: 0 4px 15px rgba(0,0,0,0.5); transition: transform 0.3s ease, box-shadow 0.3s ease; cursor: pointer; backdrop-filter: blur(10px); }
       .node:hover { transform: scale(1.02); box-shadow: 0 6px 25px rgba(0,0,0,0.6); }
-      .solar { top: 15px; left: 15px; border-top: 3px solid var(--neon-yellow); }
-      .grid { top: 15px; right: 15px; border-top: 3px solid var(--neon-blue); }
-      .battery { bottom: 15px; left: 15px; border-bottom: 3px solid var(--neon-green); }
-      .load { bottom: 15px; right: 15px; border-bottom: 3px solid var(--neon-red); }
+      .node.pulse { animation: node-pulse 1s ease-in-out infinite; }
+      @keyframes node-pulse { 0%, 100% { box-shadow: 0 4px 15px rgba(0,0,0,0.5); } 50% { box-shadow: 0 4px 25px var(--pulse-color, rgba(255,255,255,0.3)); } }
+      
+      .solar { top: 15px; left: 15px; --pulse-color: rgba(255,221,0,0.4); }
+      .grid { top: 15px; right: 15px; --pulse-color: rgba(0,243,255,0.4); }
+      .battery { bottom: 15px; left: 15px; --pulse-color: rgba(0,255,157,0.4); }
+      .load { bottom: 15px; right: 15px; --pulse-color: rgba(255,0,85,0.4); }
       @media (max-width: 400px) { .node { width: 100px; padding: 8px; } .solar, .grid { top: 10px; } .battery, .load { bottom: 10px; } .solar, .battery { left: 10px; } .grid, .load { right: 10px; } }
+      
+      /* INVERTER with self-sufficiency */
       .inverter { position: absolute; top: 50%; left: 50%; width: 110px; height: 110px; transform: translate(-50%, -50%); background: radial-gradient(circle at 30% 30%, rgba(40,40,50,0.9), rgba(10,10,15,0.95)); border-radius: 50%; border: 2px solid rgba(168, 85, 247, 0.4); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 10; box-shadow: 0 0 40px rgba(168, 85, 247, 0.2), inset 0 0 30px rgba(0,0,0,0.5); cursor: pointer; }
-      .inverter ha-icon { --mdc-icon-size: 36px; color: var(--neon-purple); animation: pulse 3s infinite; filter: drop-shadow(0 0 8px var(--neon-purple)); }
-      .inverter .inv-label { font-size: 0.65rem; color: rgba(255,255,255,0.6); margin-top: 4px; }
-      .inverter .inv-power { font-size: 0.8rem; font-weight: 700; color: var(--neon-purple); margin-top: 2px; }
+      .inverter ha-icon { --mdc-icon-size: 28px; color: var(--inv-color, #a855f7); filter: drop-shadow(0 0 8px var(--inv-color, #a855f7)); }
+      .inverter .inv-label { font-size: 0.55rem; color: rgba(255,255,255,0.5); margin-top: 2px; }
+      .inverter .inv-power { font-size: 0.7rem; font-weight: 700; color: var(--inv-color, #a855f7); }
+      .inverter .self-sufficiency { font-size: 0.6rem; color: #00ff9d; margin-top: 2px; font-weight: 600; }
       .inverter::before { content: ''; position: absolute; width: 130%; height: 130%; border-radius: 50%; border: 1px solid rgba(168, 85, 247, 0.3); animation: ring-pulse 3s ease-in-out infinite; }
       @keyframes ring-pulse { 0%, 100% { transform: scale(0.9); opacity: 0.5; } 50% { transform: scale(1); opacity: 1; } }
-      @keyframes pulse { 0%, 100% { opacity: 0.7; } 50% { opacity: 1; } }
+      
       .main-val { font-size: 1.3rem; font-weight: 800; margin: 4px 0; }
       .label { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; opacity: 0.6; }
       .sub-info { display: flex; flex-direction: column; align-items: center; margin-top: 6px; padding-top: 6px; border-top: 1px solid rgba(255,255,255,0.1); width: 100%; }
       .sub-row { font-size: 0.7rem; color: var(--text-secondary); display: flex; justify-content: space-between; width: 100%; padding: 1px 0; }
       .sub-row span:last-child { color: var(--text-primary); font-weight: 600; }
-      .cost-row { font-size: 0.65rem; color: var(--neon-green); margin-top: 2px; } .cost-row.negative { color: var(--neon-red); }
-      .status-badge { font-size: 0.6rem; padding: 2px 6px; border-radius: 8px; margin-top: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
-      .status-charging { background: rgba(0, 255, 157, 0.2); color: var(--neon-green); }
-      .status-discharging { background: rgba(255, 221, 0, 0.2); color: var(--neon-yellow); }
-      .status-import { background: rgba(255, 0, 85, 0.2); color: var(--neon-red); }
-      .status-export { background: rgba(0, 243, 255, 0.2); color: var(--neon-blue); }
-      .c-solar { color: var(--neon-yellow); } .c-grid { color: var(--neon-blue); } .c-bat { color: var(--neon-green); } .c-load { color: var(--neon-red); }
+      .cost-row { font-size: 0.65rem; color: #00ff9d; margin-top: 2px; } .cost-row.negative { color: #ff0055; }
+      .status-badge { font-size: 0.6rem; padding: 2px 6px; border-radius: 8px; margin-top: 4px; text-transform: uppercase; }
+      .status-charging { background: rgba(0, 255, 157, 0.2); color: #00ff9d; }
+      .status-discharging { background: rgba(255, 221, 0, 0.2); color: #ffdd00; }
+      .status-import { background: rgba(255, 0, 85, 0.2); color: #ff0055; }
+      .status-export { background: rgba(0, 243, 255, 0.2); color: #00f3ff; }
       
       /* SVG */
       svg.connections { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 3; overflow: visible; }
       path.wire { fill: none; stroke: rgba(255,255,255,0.12); stroke-width: 3; }
       
-      /* Flow Dots */
-      .flow-dot { filter: drop-shadow(0 0 6px currentColor); }
+      /* Enhanced Flow Dots with glow */
+      .flow-dot { filter: drop-shadow(0 0 8px currentColor) drop-shadow(0 0 4px currentColor); }
     `;
   }
 
@@ -99,6 +122,8 @@ class HiasmEnergyCard extends LitElement {
     if (!this.hass || !this.config) return html``;
     const E = this.config.entities;
     const t = (k) => this._t(k);
+    const maxP = this.config.max_power || 5000;
+    const dotsPerLine = this.config.dots_per_line || 3;
 
     const solarP = this._getState(E.solar);
     const gridP = this._getState(E.grid);
@@ -112,6 +137,16 @@ class HiasmEnergyCard extends LitElement {
     const absBatP = Math.abs(batP);
     const absGridP = Math.abs(gridP);
 
+    // Self-sufficiency calculation: (Solar used locally / Load) * 100
+    // Solar used locally = Solar - Grid Export (when exporting)
+    const gridExport = Math.max(0, -gridP);
+    const solarUsedLocally = Math.max(0, solarP - gridExport);
+    const selfSufficiency = loadP > 0 ? Math.min(100, (solarUsedLocally / loadP) * 100) : 0;
+    const showSelf = this.config.show_self_sufficiency !== false;
+
+    // Pulse animation for high power nodes (>50% of max)
+    const shouldPulse = (p) => Math.abs(p) > maxP * 0.3;
+
     const buyPrice = this.config.buy_price || 0;
     const sellPrice = this.config.sell_price || 0;
     const currency = this.config.currency || 'đ';
@@ -119,38 +154,52 @@ class HiasmEnergyCard extends LitElement {
     const sellEarn = this._getState(E.grid_sell_daily) * sellPrice;
     const formatCost = (val) => val >= 1000 ? `${(val / 1000).toFixed(1)}k${currency}` : `${val.toFixed(0)}${currency}`;
 
+    // Colors
+    const cSolar = this._getColor('solar');
+    const cGrid = this._getColor('grid');
+    const cBat = this._getColor('battery');
+    const cLoad = this._getColor('load');
+    const cInv = this._getColor('inverter');
+
+    // Generate multiple dots per line
+    const renderDots = (key, color, count) => {
+      const dots = [];
+      for (let i = 0; i < count; i++) {
+        dots.push(html`<circle id="dot-${key}-${i}" class="flow-dot" r="5" fill="${color}" style="display: none;" />`);
+      }
+      return dots;
+    };
+
     return html`
       <ha-card>
         <div class="bg-grid"></div>
         <div class="scene" id="scene">
           <svg class="connections">
-            <!-- Wires -->
             <path id="w-solar" class="wire" d="" />
             <path id="w-grid" class="wire" d="" />
             <path id="w-bat" class="wire" d="" />
             <path id="w-load" class="wire" d="" />
-
-            <!-- Flow Dots (animated by JS) -->
-            <circle id="dot-solar" class="flow-dot" r="6" fill="#ffdd00" style="display: none;" />
-            <circle id="dot-grid" class="flow-dot" r="6" fill="#00f3ff" style="display: none;" />
-            <circle id="dot-bat" class="flow-dot" r="6" fill="#00ff9d" style="display: none;" />
-            <circle id="dot-load" class="flow-dot" r="6" fill="#ff0055" style="display: none;" />
+            
+            ${renderDots('solar', cSolar, dotsPerLine)}
+            ${renderDots('grid', cGrid, dotsPerLine)}
+            ${renderDots('bat', cBat, dotsPerLine)}
+            ${renderDots('load', cLoad, dotsPerLine)}
           </svg>
 
-          <div class="node solar" id="n-solar" @click=${() => this._handlePopup(E.solar)}>
-            <ha-icon icon="mdi:solar-power-variant" class="c-solar"></ha-icon>
+          <div class="node solar ${shouldPulse(solarP) ? 'pulse' : ''}" id="n-solar" @click=${() => this._handlePopup(E.solar)} style="border-top-color: ${cSolar};">
+            <ha-icon icon="mdi:solar-power-variant" style="color: ${cSolar};"></ha-icon>
             <span class="label">${t('solar')}</span>
-            <span class="main-val c-solar">${solarP.toFixed(0)} W</span>
+            <span class="main-val" style="color: ${cSolar};">${solarP.toFixed(0)} W</span>
             <div class="sub-info">
               ${E.pv1 || E.pv2 ? html`<div class="sub-row">${E.pv1 ? html`<span>PV1: ${this._getState(E.pv1).toFixed(0)}W</span>` : ''}${E.pv2 ? html`<span>PV2: ${this._getState(E.pv2).toFixed(0)}W</span>` : ''}</div>` : ''}
               <div class="sub-row"><span>${t('today')}:</span><span>${this._getDisplay(E.solar_daily)}</span></div>
             </div>
           </div>
 
-          <div class="node grid" id="n-grid" @click=${() => this._handlePopup(E.grid)}>
-            <ha-icon icon="mdi:transmission-tower" class="c-grid"></ha-icon>
+          <div class="node grid ${shouldPulse(gridP) ? 'pulse' : ''}" id="n-grid" @click=${() => this._handlePopup(E.grid)} style="border-top-color: ${cGrid};">
+            <ha-icon icon="mdi:transmission-tower" style="color: ${cGrid};"></ha-icon>
             <span class="label">${t('grid')}</span>
-            <span class="main-val c-grid">${absGridP.toFixed(0)} W</span>
+            <span class="main-val" style="color: ${cGrid};">${absGridP.toFixed(0)} W</span>
             <div class="sub-info">
               ${isGridImport ?
         html`<div class="sub-row"><span>${t('buy')}:</span><span>${this._getDisplay(E.grid_buy_daily)}</span></div>${buyPrice > 0 ? html`<span class="cost-row negative">-${formatCost(buyCost)}</span>` : ''}<span class="status-badge status-import">${t('importing')}</span>` :
@@ -159,10 +208,10 @@ class HiasmEnergyCard extends LitElement {
             </div>
           </div>
 
-          <div class="node battery" id="n-bat" @click=${() => this._handlePopup(E.battery_power)}>
-            <ha-icon icon="${this._getBatteryIcon(batSoc)}" class="c-bat"></ha-icon>
+          <div class="node battery ${shouldPulse(batP) ? 'pulse' : ''}" id="n-bat" @click=${() => this._handlePopup(E.battery_power)} style="border-bottom-color: ${cBat};">
+            <ha-icon icon="${this._getBatteryIcon(batSoc)}" style="color: ${cBat};"></ha-icon>
             <span class="label">${t('battery')} ${batSoc.toFixed(0)}%</span>
-            <span class="main-val c-bat">${absBatP.toFixed(0)} W</span>
+            <span class="main-val" style="color: ${cBat};">${absBatP.toFixed(0)} W</span>
             <div class="sub-info">
               ${isBatCharge ?
         html`<div class="sub-row"><span>${t('charge')}:</span><span>${this._getDisplay(E.battery_daily_charge)}</span></div><span class="status-badge status-charging">${t('charging')}</span>` :
@@ -171,19 +220,20 @@ class HiasmEnergyCard extends LitElement {
             </div>
           </div>
 
-          <div class="node load" id="n-load" @click=${() => this._handlePopup(E.load)}>
-            <ha-icon icon="mdi:home-lightning-bolt" class="c-load"></ha-icon>
+          <div class="node load ${shouldPulse(loadP) ? 'pulse' : ''}" id="n-load" @click=${() => this._handlePopup(E.load)} style="border-bottom-color: ${cLoad};">
+            <ha-icon icon="mdi:home-lightning-bolt" style="color: ${cLoad};"></ha-icon>
             <span class="label">${t('load')}</span>
-            <span class="main-val c-load">${loadP.toFixed(0)} W</span>
+            <span class="main-val" style="color: ${cLoad};">${loadP.toFixed(0)} W</span>
             <div class="sub-info">
               <div class="sub-row"><span>${t('today')}:</span><span>${this._getDisplay(E.load_daily)}</span></div>
             </div>
           </div>
 
-          <div class="inverter" id="n-inv" @click=${() => this._handlePopup(E.inverter_temp)}>
+          <div class="inverter" id="n-inv" @click=${() => this._handlePopup(E.inverter_temp)} style="--inv-color: ${cInv};">
             <ha-icon icon="mdi:solar-power"></ha-icon>
             <span class="inv-label">${t('inverter')}</span>
             <span class="inv-power">${E.inverter_temp ? this._getDisplay(E.inverter_temp) : ''}</span>
+            ${showSelf ? html`<span class="self-sufficiency">${t('self')}: ${selfSufficiency.toFixed(0)}%</span>` : ''}
           </div>
         </div>
       </ha-card>
@@ -192,7 +242,6 @@ class HiasmEnergyCard extends LitElement {
 
   updated(changedProps) {
     super.updated(changedProps);
-    // Draw wires and setup animation after DOM ready
     setTimeout(() => {
       this._drawWires();
       this._setupDots();
@@ -223,7 +272,6 @@ class HiasmEnergyCard extends LitElement {
       const eY = (eRect.top + eRect.height / 2) - sRect.top;
       const mx = (eX + iX) / 2;
 
-      // Draw wire from node to inverter
       wire.setAttribute("d", `M ${eX} ${eY} Q ${mx} ${eY} ${iX} ${iY}`);
     });
   }
@@ -233,6 +281,7 @@ class HiasmEnergyCard extends LitElement {
     const root = this.shadowRoot;
     const E = this.config.entities;
     const maxP = this.config.max_power || 5000;
+    const dotsPerLine = this.config.dots_per_line || 3;
 
     const solarP = this._getState(E.solar);
     const gridP = this._getState(E.grid);
@@ -240,54 +289,51 @@ class HiasmEnergyCard extends LitElement {
     const loadP = this._getState(E.load) || Math.abs(solarP + gridP + batP);
     const batteryInvert = this.config.battery_invert || false;
 
-    // Speed calculation: higher power = faster (shorter duration)
     const getSpeed = (val) => {
-      if (Math.abs(val) < 5) return 0; // Stop
-      // Return pixels per second (pathLength will be ~200-300px)
-      return 50 + (Math.abs(val) / maxP) * 200; // 50-250 px/s
+      if (Math.abs(val) < 5) return 0;
+      return 50 + (Math.abs(val) / maxP) * 200;
     };
 
-    const setupDot = (key, value, reverse) => {
-      const dotEl = root.getElementById(`dot-${key}`);
+    const setupDotsForLine = (key, value, reverse) => {
       const wireEl = root.getElementById(`w-${key}`);
-      if (!dotEl || !wireEl) return;
+      if (!wireEl) return;
 
-      if (!this._dots[key]) {
-        this._dots[key] = {
-          element: dotEl,
-          path: wireEl,
-          pathLength: 0,
-          currentPos: 0,
-          active: false,
-          speed: 0,
-          reverse: false,
-        };
+      const pathLength = wireEl.getTotalLength ? wireEl.getTotalLength() : 200;
+      const speed = getSpeed(value);
+      const active = Math.abs(value) > 5;
+
+      for (let i = 0; i < dotsPerLine; i++) {
+        const dotEl = root.getElementById(`dot-${key}-${i}`);
+        if (!dotEl) continue;
+
+        const dotKey = `${key}-${i}`;
+        if (!this._dots[dotKey]) {
+          this._dots[dotKey] = {
+            element: dotEl,
+            path: wireEl,
+            pathLength: pathLength,
+            currentPos: (pathLength / dotsPerLine) * i, // Offset each dot
+            active: false,
+            speed: 0,
+            reverse: false,
+          };
+        }
+
+        const dot = this._dots[dotKey];
+        dot.pathLength = pathLength;
+        dot.active = active;
+        dot.reverse = reverse;
+        dot.speed = speed;
+        dotEl.style.display = active ? 'inline' : 'none';
       }
-
-      const dot = this._dots[key];
-      dot.pathLength = wireEl.getTotalLength ? wireEl.getTotalLength() : 200;
-      dot.active = Math.abs(value) > 5;
-      dot.reverse = reverse;
-      dot.speed = getSpeed(value);
-      dotEl.style.display = dot.active ? 'inline' : 'none';
     };
 
-    // Solar: always to inverter (reverse=false means start->end = node->inverter)
-    setupDot('solar', solarP, false);
-
-    // Grid: import (>0) = to inverter, export (<0) = from inverter
-    setupDot('grid', gridP, gridP < 0);
-
-    // Battery: charge = from inverter, discharge = to inverter
-    // Default: positive = discharge (to inverter), negative = charge (from inverter)
-    // If battery_invert: positive = charge (from inverter), negative = discharge (to inverter)
+    setupDotsForLine('solar', solarP, false);
+    setupDotsForLine('grid', gridP, gridP < 0);
     const batReverse = batteryInvert ? (batP > 0) : (batP < 0);
-    setupDot('bat', batP, batReverse);
+    setupDotsForLine('bat', batP, batReverse);
+    setupDotsForLine('load', loadP, true);
 
-    // Load: always from inverter (reverse=true)
-    setupDot('load', loadP, true);
-
-    // Start animation if not running
     if (!this._animationFrame) {
       this._animationFrame = requestAnimationFrame(this._animateDots.bind(this));
     }
@@ -316,9 +362,7 @@ class HiasmEnergyCard extends LitElement {
         const point = dot.path.getPointAtLength(dot.currentPos);
         dot.element.setAttribute('cx', point.x);
         dot.element.setAttribute('cy', point.y);
-      } catch (e) {
-        // Path not ready, skip
-      }
+      } catch (e) { }
     }
 
     this._animationFrame = requestAnimationFrame(this._animateDots.bind(this));
@@ -346,19 +390,49 @@ class HiasmEnergyCardEditor extends LitElement {
     const sub = t.subValue;
     let n = { ...this.config };
     if (sub) n.entities = { ...n.entities, [sub]: t.value };
-    else n[t.configValue] = t.value;
+    else if (t.configValue) n[t.configValue] = t.type === 'number' ? parseFloat(t.value) : t.value;
     const e = new Event("config-changed", { bubbles: true, composed: true });
     e.detail = { config: n };
     this.dispatchEvent(e);
   }
-  static get styles() { return css` .cfg { padding: 16px; } h3 { margin: 16px 0 8px; border-bottom: 1px solid #444; color: var(--primary-text-color); } .row { margin-bottom: 12px; } label { display: block; font-size: 0.8rem; color: #888; margin-bottom: 4px; } input, select { width: 100%; padding: 8px; border: 1px solid #444; background: var(--card-background-color); color: var(--primary-text-color); border-radius: 4px; } `; }
+  static get styles() { return css` .cfg { padding: 16px; } h3 { margin: 16px 0 8px; border-bottom: 1px solid #444; color: var(--primary-text-color); } .row { margin-bottom: 12px; } label { display: block; font-size: 0.8rem; color: #888; margin-bottom: 4px; } input, select { width: 100%; padding: 8px; border: 1px solid #444; background: var(--card-background-color); color: var(--primary-text-color); border-radius: 4px; box-sizing: border-box; } .inline { display: flex; gap: 8px; } .inline > * { flex: 1; } `; }
   render() {
     if (!this.hass || !this.config) return html``;
     const E = this.config.entities || {};
-    return html`<div class="cfg"><h3>⚙️ Config</h3>${this._i("Max Power", "max_power", this.config.max_power)}<div class="row"><label>Language</label><select @change=${(e) => { const ev = new Event("config-changed", { bubbles: true, composed: true }); ev.detail = { config: { ...this.config, language: e.target.value } }; this.dispatchEvent(ev) }}><option value="vi" ?selected=${this.config.language === 'vi'}>Tiếng Việt</option><option value="en" ?selected=${this.config.language === 'en'}>English</option></select></div><h3>💰 Cost</h3>${this._i("Buy Price", "buy_price", this.config.buy_price)}${this._i("Sell Price", "sell_price", this.config.sell_price)}<h3>☀️ Solar</h3>${this._i("Solar Power", "solar", E.solar, true)}${this._i("Solar Daily", "solar_daily", E.solar_daily, true)}${this._i("PV1", "pv1", E.pv1, true)}${this._i("PV2", "pv2", E.pv2, true)}<h3>🔌 Grid</h3>${this._i("Grid Power", "grid", E.grid, true)}${this._i("Grid Buy", "grid_buy_daily", E.grid_buy_daily, true)}${this._i("Grid Sell", "grid_sell_daily", E.grid_sell_daily, true)}<h3>🔋 Battery</h3>${this._i("SoC", "battery_soc", E.battery_soc, true)}${this._i("Power", "battery_power", E.battery_power, true)}${this._i("Charge Daily", "battery_daily_charge", E.battery_daily_charge, true)}${this._i("Discharge Daily", "battery_daily_discharge", E.battery_daily_discharge, true)}<div class="row"><label><input type="checkbox" .checked=${this.config.battery_invert || false} @change=${(e) => { const ev = new Event("config-changed", { bubbles: true, composed: true }); ev.detail = { config: { ...this.config, battery_invert: e.target.checked } }; this.dispatchEvent(ev) }}> Invert Battery Sign (+ = Charge)</label></div><h3>🏠 Load</h3>${this._i("Load Power", "load", E.load, true)}${this._i("Load Daily", "load_daily", E.load_daily, true)}<h3>⚡ Inverter</h3>${this._i("Temp", "inverter_temp", E.inverter_temp, true)}</div>`;
+    return html`<div class="cfg">
+      <h3>⚙️ General</h3>
+      ${this._i("Max Power (W)", "max_power", this.config.max_power, false, "number")}
+      <div class="row"><label>Language</label><select @change=${(e) => { const ev = new Event("config-changed", { bubbles: true, composed: true }); ev.detail = { config: { ...this.config, language: e.target.value } }; this.dispatchEvent(ev) }}><option value="vi" ?selected=${this.config.language === 'vi'}>Tiếng Việt</option><option value="en" ?selected=${this.config.language === 'en'}>English</option></select></div>
+      ${this._i("Dots per Line", "dots_per_line", this.config.dots_per_line || 3, false, "number")}
+      <div class="row"><label><input type="checkbox" .checked=${this.config.show_self_sufficiency !== false} @change=${(e) => { const ev = new Event("config-changed", { bubbles: true, composed: true }); ev.detail = { config: { ...this.config, show_self_sufficiency: e.target.checked } }; this.dispatchEvent(ev) }}> Show Self-Sufficiency %</label></div>
+      
+      <h3>💰 Cost</h3>
+      <div class="inline">${this._i("Buy Price", "buy_price", this.config.buy_price, false, "number")}${this._i("Sell Price", "sell_price", this.config.sell_price, false, "number")}</div>
+      ${this._i("Currency", "currency", this.config.currency)}
+      
+      <h3>☀️ Solar</h3>
+      ${this._i("Power", "solar", E.solar, true)}
+      ${this._i("Daily", "solar_daily", E.solar_daily, true)}
+      <div class="inline">${this._i("PV1", "pv1", E.pv1, true)}${this._i("PV2", "pv2", E.pv2, true)}</div>
+      
+      <h3>🔌 Grid</h3>
+      ${this._i("Power", "grid", E.grid, true)}
+      <div class="inline">${this._i("Buy Daily", "grid_buy_daily", E.grid_buy_daily, true)}${this._i("Sell Daily", "grid_sell_daily", E.grid_sell_daily, true)}</div>
+      
+      <h3>🔋 Battery</h3>
+      <div class="inline">${this._i("SoC", "battery_soc", E.battery_soc, true)}${this._i("Power", "battery_power", E.battery_power, true)}</div>
+      <div class="inline">${this._i("Charge", "battery_daily_charge", E.battery_daily_charge, true)}${this._i("Discharge", "battery_daily_discharge", E.battery_daily_discharge, true)}</div>
+      <div class="row"><label><input type="checkbox" .checked=${this.config.battery_invert || false} @change=${(e) => { const ev = new Event("config-changed", { bubbles: true, composed: true }); ev.detail = { config: { ...this.config, battery_invert: e.target.checked } }; this.dispatchEvent(ev) }}> Invert Battery (+ = Charge)</label></div>
+      
+      <h3>🏠 Load</h3>
+      <div class="inline">${this._i("Power", "load", E.load, true)}${this._i("Daily", "load_daily", E.load_daily, true)}</div>
+      
+      <h3>⚡ Inverter</h3>
+      ${this._i("Temperature", "inverter_temp", E.inverter_temp, true)}
+    </div>`;
   }
-  _i(l, k, v, s = false) { return html`<div class="row"><label>${l}</label><input type="text" .value="${v || ''}" .configValue=${s ? undefined : k} .subValue=${s ? k : undefined} @input=${this._val}></div>`; }
+  _i(l, k, v, s = false, type = "text") { return html`<div class="row"><label>${l}</label><input type="${type}" .value="${v || ''}" .configValue=${s ? undefined : k} .subValue=${s ? k : undefined} @input=${this._val}></div>`; }
 }
 customElements.define("hiasm-energy-card-editor", HiasmEnergyCardEditor);
 window.customCards = window.customCards || [];
-window.customCards.push({ type: "hiasm-energy-card", name: "HIASM Energy Card", preview: true, description: "3D Energy Monitor" });
+window.customCards.push({ type: "hiasm-energy-card", name: "HIASM Energy Card", preview: true, description: "3D Energy Monitor with Animated Flows" });
