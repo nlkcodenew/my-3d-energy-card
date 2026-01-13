@@ -9,7 +9,7 @@ import {
   css,
 } from "https://unpkg.com/lit-element@2.4.0/lit-element.js?module";
 
-const CARD_VERSION = "3.3.8";
+const CARD_VERSION = "3.3.9";
 
 console.info(
   `%c HIASM ENERGY CARD %c ${CARD_VERSION} `,
@@ -337,8 +337,8 @@ class HiasmEnergyCard extends LitElement {
       }
 
       /* Energy Packet Styling */
-      .energy-packet {
-        opacity: 0.95;
+      .packet {
+        opacity: 1;
       }
     `;
   }
