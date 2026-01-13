@@ -9,13 +9,49 @@ import {
   css,
 } from "https://unpkg.com/lit-element@2.4.0/lit-element.js?module";
 
-const CARD_VERSION = "3.3.6";
+const CARD_VERSION = "3.3.7";
 
 console.info(
   `%c HIASM ENERGY CARD %c ${CARD_VERSION} `,
   "color: white; background: #00f3ff; font-weight: 700;",
   "color: #00f3ff; background: #222;"
 );
+
+// Translations
+const TRANSLATIONS = {
+  en: {
+    solar: "Solar",
+    grid: "Grid",
+    battery: "Battery",
+    load: "Consumption",
+    inverter: "Inverter",
+    today: "Today",
+    buy: "Buy",
+    sell: "Sell",
+    importing: "← Import",
+    exporting: "→ Export",
+    charging: "⚡ Charging",
+    discharging: "↗ Discharging",
+    charge: "Charge",
+    discharge: "Discharge"
+  },
+  vi: {
+    solar: "Solar",
+    grid: "Lưới điện",
+    battery: "Pin",
+    load: "Tiêu thụ",
+    inverter: "Inverter",
+    today: "Hôm nay",
+    buy: "Mua",
+    sell: "Bán",
+    importing: "← Nhập",
+    exporting: "→ Xuất",
+    charging: "⚡ Đang sạc",
+    discharging: "↗ Đang xả",
+    charge: "Sạc",
+    discharge: "Xả"
+  }
+};
 
 class HiasmEnergyCard extends LitElement {
   static get properties() {
@@ -31,6 +67,7 @@ class HiasmEnergyCard extends LitElement {
       buy_price: 3000,
       sell_price: 2000,
       currency: "đ",
+      language: "vi",
       battery_invert: false,
       entities: {
         solar: "sensor.solar_power",
@@ -335,11 +372,18 @@ class HiasmEnergyCard extends LitElement {
     return "mdi:battery-outline";
   }
 
+  // Translation helper
+  _t(key) {
+    const lang = this.config?.language || 'vi';
+    return TRANSLATIONS[lang]?.[key] || TRANSLATIONS['vi'][key] || key;
+  }
+
   // ----------------------- RENDER -----------------------
   render() {
     if (!this.hass || !this.config) return html``;
     const E = this.config.entities;
     const maxP = this.config.max_power || 5000;
+    const t = (key) => this._t(key); // Shorthand
 
     // Data Gathering
     const solarP = this._getState(E.solar);
@@ -432,7 +476,7 @@ class HiasmEnergyCard extends LitElement {
           <!-- SOLAR NODE -->
           <div class="node solar" id="n-solar" @click=${() => this._handlePopup(E.solar)}>
             <ha-icon icon="mdi:solar-power-variant" class="c-solar"></ha-icon>
-            <span class="label">Solar</span>
+            <span class="label">${t('solar')}</span>
             <span class="main-val c-solar">${solarP.toFixed(0)} W</span>
             <div class="sub-info">
               ${E.pv1 || E.pv2 ? html`
@@ -442,7 +486,7 @@ class HiasmEnergyCard extends LitElement {
                 </div>
               ` : ''}
               <div class="sub-row">
-                <span>Hôm nay:</span>
+                <span>${t('today')}:</span>
                 <span>${this._getDisplay(E.solar_daily)}</span>
               </div>
             </div>
@@ -451,19 +495,19 @@ class HiasmEnergyCard extends LitElement {
           <!-- GRID NODE -->
           <div class="node grid" id="n-grid" @click=${() => this._handlePopup(E.grid)}>
             <ha-icon icon="mdi:transmission-tower" class="c-grid"></ha-icon>
-            <span class="label">Lưới điện</span>
+            <span class="label">${t('grid')}</span>
             <span class="main-val c-grid">${Math.abs(gridP).toFixed(0)} W</span>
             <div class="sub-info">
               ${isGridImport
         ? html`
-                    <div class="sub-row"><span>Mua:</span><span>${this._getDisplay(E.grid_buy_daily)}</span></div>
+                    <div class="sub-row"><span>${t('buy')}:</span><span>${this._getDisplay(E.grid_buy_daily)}</span></div>
                     ${buyPrice > 0 ? html`<span class="cost-row negative">-${formatCost(buyCost)}</span>` : ''}
-                    <span class="status-badge status-import">← Nhập</span>
+                    <span class="status-badge status-import">${t('importing')}</span>
                   `
         : html`
-                    <div class="sub-row"><span>Bán:</span><span>${this._getDisplay(E.grid_sell_daily)}</span></div>
+                    <div class="sub-row"><span>${t('sell')}:</span><span>${this._getDisplay(E.grid_sell_daily)}</span></div>
                     ${sellPrice > 0 ? html`<span class="cost-row">+${formatCost(sellEarn)}</span>` : ''}
-                    <span class="status-badge status-export">→ Xuất</span>
+                    <span class="status-badge status-export">${t('exporting')}</span>
                   `
       }
             </div>
@@ -472,17 +516,17 @@ class HiasmEnergyCard extends LitElement {
           <!-- BATTERY NODE -->
           <div class="node battery" id="n-bat" @click=${() => this._handlePopup(E.battery_power)}>
             <ha-icon icon="${this._getBatteryIcon(batSoc)}" class="c-bat"></ha-icon>
-            <span class="label">Pin ${batSoc.toFixed(0)}%</span>
+            <span class="label">${t('battery')} ${batSoc.toFixed(0)}%</span>
             <span class="main-val c-bat">${Math.abs(batP).toFixed(0)} W</span>
             <div class="sub-info">
               ${isBatCharge
         ? html`
-                    <div class="sub-row"><span>Sạc:</span><span>${this._getDisplay(E.battery_daily_charge)}</span></div>
-                    <span class="status-badge status-charging">⚡ Đang sạc</span>
+                    <div class="sub-row"><span>${t('charge')}:</span><span>${this._getDisplay(E.battery_daily_charge)}</span></div>
+                    <span class="status-badge status-charging">${t('charging')}</span>
                   `
         : html`
-                    <div class="sub-row"><span>Xả:</span><span>${this._getDisplay(E.battery_daily_discharge)}</span></div>
-                    <span class="status-badge status-discharging">↗ Đang xả</span>
+                    <div class="sub-row"><span>${t('discharge')}:</span><span>${this._getDisplay(E.battery_daily_discharge)}</span></div>
+                    <span class="status-badge status-discharging">${t('discharging')}</span>
                   `
       }
             </div>
@@ -491,11 +535,11 @@ class HiasmEnergyCard extends LitElement {
           <!-- LOAD NODE -->
           <div class="node load" id="n-load" @click=${() => this._handlePopup(E.load)}>
             <ha-icon icon="mdi:home-lightning-bolt" class="c-load"></ha-icon>
-            <span class="label">Tiêu thụ</span>
+            <span class="label">${t('load')}</span>
             <span class="main-val c-load">${loadP.toFixed(0)} W</span>
             <div class="sub-info">
               <div class="sub-row">
-                <span>Hôm nay:</span>
+                <span>${t('today')}:</span>
                 <span>${this._getDisplay(E.load_daily)}</span>
               </div>
             </div>
@@ -504,7 +548,7 @@ class HiasmEnergyCard extends LitElement {
           <!-- INVERTER HUB (Center) -->
           <div class="inverter" id="n-inv" @click=${() => this._handlePopup(E.inverter_temp)}>
             <ha-icon icon="mdi:solar-power"></ha-icon>
-            <span class="inv-label">Inverter</span>
+            <span class="inv-label">${t('inverter')}</span>
             <span class="inv-power">${E.inverter_temp ? this._getDisplay(E.inverter_temp) : ''}</span>
           </div>
 
@@ -676,9 +720,18 @@ class HiasmEnergyCardEditor extends LitElement {
         color: var(--primary-text-color);
         box-sizing: border-box;
       }
-      input:focus {
+      input:focus, select:focus {
         outline: none;
         border-color: var(--primary-color);
+      }
+      select {
+        width: 100%;
+        padding: 8px;
+        border: 1px solid var(--divider-color);
+        border-radius: 6px;
+        background: var(--card-background-color);
+        color: var(--primary-text-color);
+        cursor: pointer;
       }
     `;
   }
@@ -690,6 +743,17 @@ class HiasmEnergyCardEditor extends LitElement {
       <div class="card-config">
         <h3>⚙️ Cấu hình chính</h3>
         ${this._inp("Max Power (W)", "max_power", this.config.max_power)}
+        <div class="config-row">
+          <label>Ngôn ngữ / Language</label>
+          <select @change=${(e) => {
+        const event = new Event("config-changed", { bubbles: true, composed: true });
+        event.detail = { config: { ...this.config, language: e.target.value } };
+        this.dispatchEvent(event);
+      }}>
+            <option value="vi" ?selected=${this.config.language === 'vi'}>🇻🇳 Tiếng Việt</option>
+            <option value="en" ?selected=${this.config.language === 'en'}>🇬🇧 English</option>
+          </select>
+        </div>
         
         <h3>💰 Chi phí điện</h3>
         ${this._inp("Giá mua (đ/kWh)", "buy_price", this.config.buy_price)}
