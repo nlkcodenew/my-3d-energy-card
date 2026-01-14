@@ -1,7 +1,7 @@
 # NLK 3D Energy Card
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-1.1.0-blue?style=for-the-badge" alt="Version">
+  <img src="https://img.shields.io/badge/version-1.1.1-blue?style=for-the-badge" alt="Version">
   <img src="https://img.shields.io/badge/HACS-Default-orange?style=for-the-badge" alt="HACS">
   <img src="https://img.shields.io/badge/Home%20Assistant-2024.1+-green?style=for-the-badge" alt="HA">
 </p>
@@ -180,12 +180,6 @@ Adjust `max_power` to match your system's peak power
 - ✨ **Flow Direction Arrows** - Arrow markers on wires
 - ✨ **Card Size Options** - Compact (320px), Normal (420px), Large (520px)
 - ✨ **Enhanced Comet Tail** - Triple drop-shadow glow effect
-
-### v1.0.4 (2026-01-13)
-- ✨ Multi-dots animation (3 per line)
-- ✨ Self-sufficiency % (daily-based, matches HA Energy)
-- ✨ Node pulse animation
-- 🔧 Renamed to NLK 3D Energy Card
 ---
 
 ## 📄 License
