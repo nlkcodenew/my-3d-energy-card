@@ -1,15 +1,10 @@
-/*
- * NLK 3D ENERGY CARD - V1.1.0 (ENHANCED EDITION)
- * Features: Multi-dots, Self-sufficiency %, Customizable colors, Glow effects, Node pulse, Battery Time, Flow Arrows
- */
-
 import {
   LitElement,
   html,
   css,
 } from "https://unpkg.com/lit-element@2.4.0/lit-element.js?module";
 
-const CARD_VERSION = "1.1.1";
+const CARD_VERSION = "2.1.1";
 
 console.info(
   `%c NLK 3D ENERGY CARD %c ${CARD_VERSION} `,
