@@ -1,7 +1,7 @@
 # NLK 3D Energy Card
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-1.1.1-blue?style=for-the-badge" alt="Version">
+  <img src="https://img.shields.io/badge/version-1.5.0-blue?style=for-the-badge" alt="Version">
   <img src="https://img.shields.io/badge/HACS-Default-orange?style=for-the-badge" alt="HACS">
   <img src="https://img.shields.io/badge/Home%20Assistant-2024.1+-green?style=for-the-badge" alt="HA">
 </p>
@@ -16,14 +16,15 @@ Thẻ năng lượng 3D đẹp mắt cho Home Assistant với dòng chảy năng
 
 | Feature | Description / Mô tả |
 |---------|---------------------|
-| 🎯 **Animated Flow** | Multiple animated dots with comet tail glow / Nhiều chấm động với hiệu ứng đuôi sao |
-| 📊 **Self-Sufficiency** | Shows % based on daily consumption / Hiển thị % dựa trên tiêu thụ hàng ngày |
-| 🎨 **Color Editor** | Visual color pickers in editor / Chọn màu trực quan trong editor |
-| 🔋 **Battery Time** | Shows time remaining / to full / Hiển thị thời gian còn lại / đầy |
-| ➡️ **Flow Arrows** | Direction arrows on wires / Mũi tên hướng trên dây |
-| 📐 **Card Sizes** | Compact, Normal, Large modes / Chế độ nhỏ, thường, lớn |
+| 🎯 **Animated Flow** | Dashed or Dots animation styles / Kiểu nét đứt hoặc chấm tròn |
+| 📊 **Self-Sufficiency** | Shows % based on daily consumption / Hiển thị % dựa trên tiêu thụ |
+| 🌡️ **Temperature Colors** | Inverter color changes with temperature (10°C→70°C) / Màu inverter thay đổi theo nhiệt độ |
+| 🎨 **Color Editor** | Visual color pickers in editor / Chọn màu trực quan |
+| 🔋 **Battery Display** | Large SoC %, time remaining / Hiển thị % pin lớn, thời gian còn lại |
+| 📐 **Compact Mode** | Hide sub-info for cleaner look / Ẩn thông tin phụ |
 | 💡 **Node Pulse** | Nodes pulse when high power / Node nhấp nháy khi công suất cao |
 | 🌐 **Multi-Language** | English & Vietnamese / Hỗ trợ tiếng Anh & Việt |
+| 📱 **Responsive** | Better fonts on mobile / Font tối ưu trên mobile |
 
 ---
 
@@ -79,14 +80,14 @@ type: custom:nlk-3d-energy-card
 max_power: 5000
 language: vi  # en | vi
 show_self_sufficiency: true
+compact_mode: false
 battery_invert: false
-battery_capacity: 10  # kWh for time remaining
-card_size: normal  # compact | normal | large
+battery_capacity: 10  # kWh
+flow_style: dashed  # dashed | dots
 buy_price: 3000
 sell_price: 2000
 currency: "đ"
 
-# Custom colors (optional)
 colors:
   solar: "#ffdd00"
   grid: "#00f3ff"
@@ -97,6 +98,7 @@ colors:
 entities:
   solar: sensor.solar_power
   solar_daily: sensor.solar_energy_daily
+  total_yield: sensor.total_yield  # Optional
   pv1: sensor.pv1_power  # Optional
   pv2: sensor.pv2_power  # Optional
   grid: sensor.grid_power
@@ -117,82 +119,46 @@ entities:
 
 | Entity | Positive (+) | Negative (-) |
 |--------|--------------|--------------|
-| `grid` | Import from grid / Nhập từ lưới | Export to grid / Xuất ra lưới |
+| `grid` | Import / Nhập từ lưới | Export / Xuất ra lưới |
 | `battery_power` | Discharge / Xả pin | Charge / Sạc pin |
 
 > 💡 If your inverter uses opposite convention, enable `battery_invert: true`
->
-> Nếu inverter của bạn dùng quy ước ngược, bật `battery_invert: true`
 
 ---
 
-## 🎨 Custom Colors / Tùy chỉnh màu
+## 🌡️ Inverter Temperature Colors
 
-Override default colors in your config:
+The inverter circle automatically changes color based on temperature:
 
-```yaml
-colors:
-  solar: "#ffa500"    # Orange solar
-  grid: "#0066ff"     # Blue grid
-  battery: "#00cc44"  # Green battery
-  load: "#cc0033"     # Red load
-  inverter: "#9933ff" # Purple inverter
-```
-
----
-
-## 📊 Self-Sufficiency Calculation / Tính toán tự cấp
-
-The self-sufficiency percentage shows how much of your load is covered by solar:
-
-**Formula / Công thức:**
-```
-Self% = (Solar Used Locally / Load) × 100
-Solar Used Locally = Solar Production - Grid Export
-```
-
-**Example / Ví dụ:**
-- Solar: 3000W, Load: 2500W, Export: 500W
-- Self% = (3000 - 500) / 2500 × 100 = **100%**
-
----
-
-## 🔧 Troubleshooting / Xử lý sự cố
-
-### Animation not showing / Animation không hiển thị
-1. Clear browser cache: `Ctrl + Shift + R`
-2. Check console for errors: `F12` → Console
-3. Verify card version shows `1.1.0`
-
-### Wrong battery direction / Hướng pin sai
-Enable `battery_invert: true` in config
-
-### Dots moving too fast/slow / Chấm chạy quá nhanh/chậm
-Adjust `max_power` to match your system's peak power
+| Temperature | Color |
+|-------------|-------|
+| 10°C | Cyan (Cool) |
+| 40°C | Green/Yellow |
+| 70°C | Red (Hot) |
 
 ---
 
 ## 📝 Changelog
 
+### v1.5.0 (2026-01-14)
+- ✨ **Flow Styles** - Dashed or Dots animation
+- 🌡️ **Temperature Colors** - Inverter color changes with temp (10°C→70°C)
+- 📱 **Responsive Fonts** - Better mobile display
+- 📦 **Compact Mode** - Hide sub-info for cleaner look
+- 🔋 **Better Battery Display** - Large SoC %, gold power value
+- ⚡ **Total Yield** - Optional total solar yield entity
+- 🛡️ **Error Handling** - Better handling of missing entities
+
 ### v1.1.0 (2026-01-13)
-- ✨ **Color Editor in UI** - Visual color pickers for all elements
-- ✨ **Battery Time Remaining** - Shows "~Xh left" or "~Xh → 100%"
-- ✨ **Flow Direction Arrows** - Arrow markers on wires
-- ✨ **Card Size Options** - Compact (320px), Normal (420px), Large (520px)
-- ✨ **Enhanced Comet Tail** - Triple drop-shadow glow effect
+- ✨ Color Editor in UI
+- ✨ Battery Time Remaining
+- ✨ Card Size Options
+
 ---
 
 ## 📄 License
 
 MIT License - Feel free to modify and share!
-
----
-
-## 🙏 Credits
-
-- Inspired by [Power Flow Card Plus](https://github.com/flixlix/power-flow-card-plus)
-- Animation pattern from [TB Energy Flow Card](https://github.com/tongtbgl/tb-energy-flow-card)
-- Built with [LitElement](https://lit.dev/)
 
 ---
 
