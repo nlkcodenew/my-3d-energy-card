@@ -1,15 +1,15 @@
 /*
- * NLK 3D ENERGY CARD - V1.5.0
- * Features: 3D Energy Flow Visualization with Animated Wires
+ * NLK 3D ENERGY CARD - V1.4.1 (FIXED DOTS ANIMATION)
  */
 
 import {
   LitElement,
   html,
+  svg,
   css,
 } from "https://unpkg.com/lit-element@2.4.0/lit-element.js?module";
 
-const CARD_VERSION = "1.5.0";
+const CARD_VERSION = "1.4.1";
 
 // Load Google Fonts
 if (!document.querySelector('link[href*="fonts.googleapis.com/css2?family=Orbitron"]')) {
@@ -48,15 +48,9 @@ class NLK3DEnergyCard extends LitElement {
       show_self_sufficiency: true,
       battery_capacity: 10,
       card_size: "normal",
-      flow_style: "dashed",
-      compact_mode: false,
+      flow_style: "dashed", // "dots" or "dashed"
       colors: {},
-      entities: {
-        solar: "sensor.solar_power", solar_daily: "sensor.solar_energy_daily", total_yield: "",
-        grid: "sensor.grid_power", grid_buy_daily: "sensor.grid_import_daily", grid_sell_daily: "sensor.grid_export_daily",
-        battery_soc: "sensor.battery_level", battery_power: "sensor.battery_power", battery_daily_charge: "sensor.battery_charge_daily", battery_daily_discharge: "sensor.battery_discharge_daily",
-        load: "sensor.load_power", load_daily: "sensor.load_energy_daily", inverter_temp: "sensor.inverter_temperature"
-      }
+      entities: { solar: "sensor.solar_power", solar_daily: "sensor.solar_energy_daily", grid: "sensor.grid_power", grid_buy_daily: "sensor.grid_import_daily", grid_sell_daily: "sensor.grid_export_daily", battery_soc: "sensor.battery_level", battery_power: "sensor.battery_power", battery_daily_charge: "sensor.battery_charge_daily", battery_daily_discharge: "sensor.battery_discharge_daily", load: "sensor.load_power", load_daily: "sensor.load_energy_daily", inverter_temp: "sensor.inverter_temperature" }
     };
   }
 
@@ -102,14 +96,7 @@ class NLK3DEnergyCard extends LitElement {
       .grid { top: 15px; right: 15px; --pulse-color: rgba(0,243,255,0.4); transform: rotateX(-4deg) rotateY(-5deg) translateZ(15px); }
       .battery { bottom: 15px; left: 15px; --pulse-color: rgba(0,255,157,0.4); transform: rotateX(4deg) rotateY(5deg) translateZ(15px); }
       .load { bottom: 15px; right: 15px; --pulse-color: rgba(255,0,85,0.4); transform: rotateX(4deg) rotateY(-5deg) translateZ(15px); }
-      @media (max-width: 400px) { 
-        .node { width: 95px; padding: 6px; } 
-        .solar, .grid { top: 8px; } .battery, .load { bottom: 8px; } 
-        .solar, .battery { left: 8px; } .grid, .load { right: 8px; } 
-        .main-val { font-size: 1rem; }
-        .label { font-size: 0.65rem; }
-        .sub-row { font-size: 0.6rem; }
-      }
+      @media (max-width: 400px) { .node { width: 100px; padding: 8px; } .solar, .grid { top: 10px; } .battery, .load { bottom: 10px; } .solar, .battery { left: 10px; } .grid, .load { right: 10px; } }
       
       /* INVERTER */
       .inverter { 
@@ -153,15 +140,6 @@ class NLK3DEnergyCard extends LitElement {
       .status-import { background: rgba(255, 0, 85, 0.2); color: #ff0055; }
       .status-export { background: rgba(0, 243, 255, 0.2); color: #00f3ff; }
       
-      /* Value change flash animation */
-      .main-val.flash { animation: val-flash 0.5s ease-out; }
-      @keyframes val-flash { 0% { filter: brightness(2); transform: scale(1.1); } 100% { filter: brightness(1); transform: scale(1); } }
-      
-      /* Compact mode */
-      :host([data-compact]) .sub-info { display: none; }
-      :host([data-compact]) .node { padding: 8px; }
-      :host([data-compact]) .inverter .self-sufficiency { display: none; }
-      
       /* SVG & NEW CSS ANIMATIONS */
       svg.connections { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 3; overflow: visible; }
       
@@ -198,32 +176,11 @@ class NLK3DEnergyCard extends LitElement {
     `;
   }
 
-  _getState(e) {
-    if (!e || !this.hass || !this.hass.states[e]) return 0;
-    const val = parseFloat(this.hass.states[e].state);
-    return isNaN(val) ? 0 : val;
-  }
-  _getDisplay(e) {
-    if (!e || !this.hass || !this.hass.states[e]) return "--";
-    const s = this.hass.states[e];
-    const v = parseFloat(s.state);
-    return isNaN(v) ? s.state : `${v.toFixed(1)} ${s.attributes.unit_of_measurement || ''}`;
-  }
+  _getState(e) { return (this.hass && this.hass.states[e]) ? parseFloat(this.hass.states[e].state) : 0; }
+  _getDisplay(e) { if (!this.hass || !this.hass.states[e]) return "N/A"; const s = this.hass.states[e]; const v = parseFloat(s.state); return isNaN(v) ? s.state : `${v.toFixed(1)} ${s.attributes.unit_of_measurement || ''}`; }
   _handlePopup(e) { if (!e) return; const ev = new Event("hass-more-info", { bubbles: true, composed: true }); ev.detail = { entityId: e }; this.dispatchEvent(ev); }
   _getBatteryIcon(s) { if (s >= 90) return "mdi:battery"; if (s >= 70) return "mdi:battery-80"; if (s >= 50) return "mdi:battery-60"; if (s >= 30) return "mdi:battery-40"; if (s >= 10) return "mdi:battery-20"; return "mdi:battery-outline"; }
   _t(k) { const l = this.config?.language || 'vi'; return TRANSLATIONS[l]?.[k] || TRANSLATIONS['vi'][k] || k; }
-
-  // Temperature to color (10°C=cyan, 40°C=green/yellow, 70°C=red)
-  _getTempColor(temp, minT = 10, maxT = 70) {
-    if (!temp || temp <= 0) return this._getColor('inverter'); // Fallback to default
-    const t = Math.max(minT, Math.min(maxT, temp));
-    const ratio = (t - minT) / (maxT - minT); // 0 to 1
-    // HSL: 180 (cyan) -> 120 (green) -> 60 (yellow) -> 0 (red)
-    const hue = Math.round(180 - ratio * 180); // 180 to 0
-    const saturation = 85;
-    const lightness = 50 + (1 - ratio) * 10; // Brighter when cool
-    return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
-  }
 
   render() {
     if (!this.hass || !this.config) return html``;
@@ -267,10 +224,7 @@ class NLK3DEnergyCard extends LitElement {
     const cGrid = this._getColor('grid');
     const cBat = this._getColor('battery');
     const cLoad = this._getColor('load');
-
-    // Inverter color based on temperature (10°C = cool blue, 70°C = hot red)
-    const invTemp = this._getState(E.inverter_temp);
-    const cInv = this._getTempColor(invTemp, 10, 70);
+    const cInv = this._getColor('inverter');
 
     // Battery Time
     const batCapacity = this.config.battery_capacity || 10;
@@ -302,11 +256,8 @@ class NLK3DEnergyCard extends LitElement {
       return flowStyle; // 'dashed' or 'dots'
     };
 
-    // Compact mode
-    const isCompact = this.config.compact_mode || false;
-
     return html`
-      <ha-card data-size="${this.config.card_size || 'normal'}" ?data-compact=${isCompact}>
+      <ha-card data-size="${this.config.card_size || 'normal'}">
         <div class="bg-grid"></div>
         <div class="scene" id="scene">
           
@@ -328,12 +279,11 @@ class NLK3DEnergyCard extends LitElement {
             <span class="main-val" style="color: ${cSolar};">${solarP.toFixed(0)} W</span>
             <div class="sub-info">
               ${E.pv1 || E.pv2 ? html`
-                <div class="sub-row" style="justify-content: center; gap: 10px;">
-                  ${E.pv1 ? html`<span style="color: var(--text-primary);">PV1: ${this._getState(E.pv1).toFixed(0)}W</span>` : ''}
-                  ${E.pv2 ? html`<span style="color: var(--text-primary);">PV2: ${this._getState(E.pv2).toFixed(0)}W</span>` : ''}
+                <div class="sub-row">
+                  ${E.pv1 ? html`<span>PV1: ${this._getState(E.pv1).toFixed(0)}W</span>` : ''}
+                  ${E.pv2 ? html`<span>PV2: ${this._getState(E.pv2).toFixed(0)}W</span>` : ''}
                 </div>` : ''}
               <div class="sub-row"><span>${t('today')}:</span><span>${this._getDisplay(E.solar_daily)}</span></div>
-              ${E.total_yield ? html`<div class="sub-row"><span>Total:</span><span>${this._getDisplay(E.total_yield)}</span></div>` : ''}
             </div>
           </div>
 
@@ -343,23 +293,22 @@ class NLK3DEnergyCard extends LitElement {
             <span class="main-val" style="color: ${cGrid};">${absGridP.toFixed(0)} W</span>
             <div class="sub-info">
               ${isGridImport ?
-        html`<div class="sub-row"><span>${t('buy')}:</span><span>${this._getDisplay(E.grid_buy_daily)}</span></div>${buyPrice > 0 ? html`<span class="cost-row negative">-${formatCost(buyCost)}</span>` : ''}` :
-        html`<div class="sub-row"><span>${t('sell')}:</span><span>${this._getDisplay(E.grid_sell_daily)}</span></div>${sellPrice > 0 ? html`<span class="cost-row">+${formatCost(sellEarn)}</span>` : ''}`
+        html`<div class="sub-row"><span>${t('buy')}:</span><span>${this._getDisplay(E.grid_buy_daily)}</span></div>${buyPrice > 0 ? html`<span class="cost-row negative">-${formatCost(buyCost)}</span>` : ''}<span class="status-badge status-import">${t('importing')}</span>` :
+        html`<div class="sub-row"><span>${t('sell')}:</span><span>${this._getDisplay(E.grid_sell_daily)}</span></div>${sellPrice > 0 ? html`<span class="cost-row">+${formatCost(sellEarn)}</span>` : ''}<span class="status-badge status-export">${t('exporting')}</span>`
       }
             </div>
           </div>
 
           <div class="node battery ${shouldPulse(batP) ? 'pulse' : ''}" id="n-bat" @click=${() => this._handlePopup(E.battery_power)} style="border-bottom-color: ${cBat};">
             <ha-icon icon="${this._getBatteryIcon(batSoc)}" style="color: ${cBat};"></ha-icon>
-            <span class="label">${t('battery')}</span>
-            <span class="main-val" style="color: ${cBat};">${batSoc.toFixed(0)}%</span>
-            <span style="font-size: 0.8rem; color: #ffd700; margin-top: -2px; font-weight: 600;">${absBatP.toFixed(0)} W</span>
+            <span class="label">${t('battery')} ${batSoc.toFixed(0)}%</span>
+            <span class="main-val" style="color: ${cBat};">${absBatP.toFixed(0)} W</span>
             <div class="sub-info">
               ${isBatCharge ?
         html`<div class="sub-row"><span>${t('charge')}:</span><span>${this._getDisplay(E.battery_daily_charge)}</span></div><span class="status-badge status-charging">${t('charging')}</span>` :
         html`<div class="sub-row"><span>${t('discharge')}:</span><span>${this._getDisplay(E.battery_daily_discharge)}</span></div><span class="status-badge status-discharging">${t('discharging')}</span>`
       }
-              ${batTimeRemaining ? html`<div class="sub-row" style="margin-top:4px; justify-content: center;"><span style="font-size:0.6rem;color:#888;">${batTimeRemaining}</span></div>` : ''}
+              ${batTimeRemaining ? html`<div class="sub-row" style="margin-top:4px;"><span style="font-size:0.6rem;color:#888;">${batTimeRemaining}</span></div>` : ''}
             </div>
           </div>
 
@@ -459,7 +408,6 @@ class NLK3DEnergyCardEditor extends LitElement {
       ${this._i("Max Power (W)", "max_power", this.config.max_power, false, "number")}
       <div class="row"><label>Language</label><select @change=${(e) => { const ev = new Event("config-changed", { bubbles: true, composed: true }); ev.detail = { config: { ...this.config, language: e.target.value } }; this.dispatchEvent(ev) }}><option value="vi" ?selected=${this.config.language === 'vi'}>Tiếng Việt</option><option value="en" ?selected=${this.config.language === 'en'}>English</option></select></div>
       <div class="row"><label><input type="checkbox" .checked=${this.config.show_self_sufficiency !== false} @change=${(e) => { const ev = new Event("config-changed", { bubbles: true, composed: true }); ev.detail = { config: { ...this.config, show_self_sufficiency: e.target.checked } }; this.dispatchEvent(ev) }}> Show Self-Sufficiency %</label></div>
-      <div class="row"><label><input type="checkbox" .checked=${this.config.compact_mode || false} @change=${(e) => { const ev = new Event("config-changed", { bubbles: true, composed: true }); ev.detail = { config: { ...this.config, compact_mode: e.target.checked } }; this.dispatchEvent(ev) }}> Compact Mode</label></div>
       
       <h3>💰 Cost</h3>
       <div class="inline">${this._i("Buy Price", "buy_price", this.config.buy_price, false, "number")}${this._i("Sell Price", "sell_price", this.config.sell_price, false, "number")}</div>
@@ -468,7 +416,6 @@ class NLK3DEnergyCardEditor extends LitElement {
       <h3>☀️ Solar</h3>
       ${this._i("Power", "solar", E.solar, true)}
       ${this._i("Daily", "solar_daily", E.solar_daily, true)}
-      ${this._i("Total Yield", "total_yield", E.total_yield, true)}
       <div class="inline">${this._i("PV1", "pv1", E.pv1, true)}${this._i("PV2", "pv2", E.pv2, true)}</div>
       
       <h3>🔌 Grid</h3>
