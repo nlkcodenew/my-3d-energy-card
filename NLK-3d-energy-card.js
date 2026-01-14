@@ -4,12 +4,20 @@ import {
   css,
 } from "https://unpkg.com/lit-element@2.4.0/lit-element.js?module";
 
-const CARD_VERSION = "1.1.1";
+const CARD_VERSION = "2.1.0"; // Sharp 3D - No blur
+
+// Load Google Fonts for stylized typography
+if (!document.querySelector('link[href*="fonts.googleapis.com/css2?family=Orbitron"]')) {
+  const fontLink = document.createElement('link');
+  fontLink.href = 'https://fonts.googleapis.com/css2?family=Orbitron:wght@700;800;900&family=Rajdhani:wght@500;600;700&display=swap';
+  fontLink.rel = 'stylesheet';
+  document.head.appendChild(fontLink);
+}
 
 console.info(
   `%c NLK 3D ENERGY CARD %c ${CARD_VERSION} `,
-  "color: white; background: #00f3ff; font-weight: 700;",
-  "color: #00f3ff; background: #222;"
+  "color: white; background: linear-gradient(90deg, #a855f7, #00f3ff); font-weight: 700;",
+  "color: #a855f7; background: #0a0a0f;"
 );
 
 const TRANSLATIONS = {
@@ -60,53 +68,346 @@ class NLK3DEnergyCard extends LitElement {
 
   static get styles() {
     return css`
-      :host { display: block; padding: 0; --bg-card: var(--ha-card-background, #141414); --text-primary: var(--primary-text-color, #fff); --text-secondary: var(--secondary-text-color, #888); --border-color: var(--divider-color, rgba(255,255,255,0.1)); }
-      ha-card { background: var(--bg-card); overflow: hidden; border-radius: 16px; position: relative; height: var(--card-height, 420px); border: 1px solid var(--border-color); }
-      :host([data-size="compact"]) { --card-height: 320px; } :host([data-size="large"]) { --card-height: 520px; }
+      /* === BASE VARIABLES === */
+      :host { 
+        display: block; 
+        padding: 0; 
+        --bg-card: var(--ha-card-background, #0a0a0f); 
+        --text-primary: var(--primary-text-color, #fff); 
+        --text-secondary: var(--secondary-text-color, #888); 
+        --border-color: var(--divider-color, rgba(255,255,255,0.08));
+        font-family: 'Rajdhani', 'Segoe UI', sans-serif;
+      }
+      
+      ha-card { 
+        background: linear-gradient(145deg, #0d0d12 0%, #080810 100%);
+        overflow: hidden; 
+        border-radius: 20px; 
+        position: relative; 
+        height: var(--card-height, 420px); 
+        border: 1px solid rgba(255,255,255,0.05);
+        box-shadow: 
+          0 25px 50px rgba(0,0,0,0.5),
+          inset 0 1px 0 rgba(255,255,255,0.05);
+      }
+      :host([data-size="compact"]) { --card-height: 320px; } 
+      :host([data-size="large"]) { --card-height: 520px; }
       @media (max-width: 400px) { ha-card { height: calc(var(--card-height, 420px) - 40px); } }
-      .bg-grid { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-image: linear-gradient(var(--border-color) 1px, transparent 1px), linear-gradient(90deg, var(--border-color) 1px, transparent 1px); background-size: 40px 40px; mask-image: radial-gradient(circle at center, black 40%, transparent 100%); opacity: 0.5; }
-      .scene { width: 100%; height: 100%; position: relative; perspective: 1000px; }
       
-      /* NODES with pulse animation */
-      .node { position: absolute; width: 120px; padding: 10px; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; display: flex; flex-direction: column; align-items: center; color: var(--text-primary); z-index: 5; box-shadow: 0 4px 15px rgba(0,0,0,0.5); transition: transform 0.3s ease, box-shadow 0.3s ease; cursor: pointer; backdrop-filter: blur(10px); }
-      .node:hover { transform: scale(1.02); box-shadow: 0 6px 25px rgba(0,0,0,0.6); }
-      .node.pulse { animation: node-pulse 1s ease-in-out infinite; }
-      @keyframes node-pulse { 0%, 100% { box-shadow: 0 4px 15px rgba(0,0,0,0.5); } 50% { box-shadow: 0 4px 25px var(--pulse-color, rgba(255,255,255,0.3)); } }
+      /* === ANIMATED BACKGROUND GRID === */
+      .bg-grid { 
+        position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
+        background-image: 
+          linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px), 
+          linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px); 
+        background-size: 35px 35px; 
+        mask-image: radial-gradient(ellipse at center, black 20%, transparent 70%); 
+        opacity: 0.8;
+        animation: grid-move 20s linear infinite;
+      }
+      @keyframes grid-move {
+        0% { background-position: 0 0; }
+        100% { background-position: 35px 35px; }
+      }
       
-      .solar { top: 15px; left: 15px; --pulse-color: rgba(255,221,0,0.4); }
-      .grid { top: 15px; right: 15px; --pulse-color: rgba(0,243,255,0.4); }
-      .battery { bottom: 15px; left: 15px; --pulse-color: rgba(0,255,157,0.4); }
-      .load { bottom: 15px; right: 15px; --pulse-color: rgba(255,0,85,0.4); }
-      @media (max-width: 400px) { .node { width: 100px; padding: 8px; } .solar, .grid { top: 10px; } .battery, .load { bottom: 10px; } .solar, .battery { left: 10px; } .grid, .load { right: 10px; } }
+      /* === 3D SCENE === */
+      .scene { 
+        width: 100%; height: 100%; 
+        position: relative; 
+        perspective: 1200px;
+        perspective-origin: 50% 50%;
+        transform-style: preserve-3d;
+      }
       
-      /* INVERTER with self-sufficiency */
-      .inverter { position: absolute; top: 50%; left: 50%; width: 110px; height: 110px; transform: translate(-50%, -50%); background: radial-gradient(circle at 30% 30%, rgba(40,40,50,0.9), rgba(10,10,15,0.95)); border-radius: 50%; border: 2px solid rgba(168, 85, 247, 0.4); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 10; box-shadow: 0 0 40px rgba(168, 85, 247, 0.2), inset 0 0 30px rgba(0,0,0,0.5); cursor: pointer; }
-      .inverter ha-icon { --mdc-icon-size: 28px; color: var(--inv-color, #a855f7); filter: drop-shadow(0 0 8px var(--inv-color, #a855f7)); }
-      .inverter .inv-label { font-size: 0.55rem; color: rgba(255,255,255,0.5); margin-top: 2px; }
-      .inverter .inv-power { font-size: 0.7rem; font-weight: 700; color: var(--inv-color, #a855f7); }
-      .inverter .self-sufficiency { font-size: 0.6rem; color: #00ff9d; margin-top: 2px; font-weight: 600; }
-      .inverter::before { content: ''; position: absolute; width: 130%; height: 130%; border-radius: 50%; border: 1px solid rgba(168, 85, 247, 0.3); animation: ring-pulse 3s ease-in-out infinite; }
-      @keyframes ring-pulse { 0%, 100% { transform: scale(0.9); opacity: 0.5; } 50% { transform: scale(1); opacity: 1; } }
+      /* === 3D EMBOSSED NODES === */
+      .node { 
+        position: absolute; 
+        width: 125px; 
+        padding: 12px 10px; 
+        background: linear-gradient(145deg, #1e1e26 0%, #12121a 100%);
+        border: 2px solid rgba(255,255,255,0.12); 
+        border-top-color: rgba(255,255,255,0.2);
+        border-left-color: rgba(255,255,255,0.15);
+        border-radius: 14px; 
+        display: flex; flex-direction: column; align-items: center; 
+        color: var(--text-primary); 
+        z-index: 5; 
+        cursor: pointer; 
+        transform-style: preserve-3d;
+        transition: all 0.3s ease;
+        
+        /* Sharp 3D embossed shadows - no blur */
+        box-shadow: 
+          /* Hard outer shadow for depth */
+          6px 6px 0 rgba(0,0,0,0.4),
+          8px 8px 0 rgba(0,0,0,0.2),
+          /* Subtle ambient */
+          0 10px 20px rgba(0,0,0,0.3);
+      }
       
-      .main-val { font-size: 1.3rem; font-weight: 800; margin: 4px 0; }
-      .label { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; opacity: 0.6; }
-      .sub-info { display: flex; flex-direction: column; align-items: center; margin-top: 6px; padding-top: 6px; border-top: 1px solid rgba(255,255,255,0.1); width: 100%; }
-      .sub-row { font-size: 0.7rem; color: var(--text-secondary); display: flex; justify-content: space-between; width: 100%; padding: 1px 0; }
+      /* Sharp edge highlight */
+      .node::after {
+        content: '';
+        position: absolute;
+        top: 0; left: 0;
+        width: 100%; height: 3px;
+        background: linear-gradient(90deg, 
+          transparent 0%,
+          var(--node-color, rgba(255,255,255,0.3)) 20%,
+          var(--node-color, rgba(255,255,255,0.3)) 80%,
+          transparent 100%
+        );
+        border-radius: 14px 14px 0 0;
+        pointer-events: none;
+      }
+      
+      /* 3D tilt transforms for each corner */
+      .solar { 
+        top: 15px; left: 15px; 
+        --node-color: #ffdd00;
+        transform: rotateX(-5deg) rotateY(6deg) translateZ(25px);
+        border-top-color: rgba(255,221,0,0.5);
+      }
+      .grid { 
+        top: 15px; right: 15px; 
+        --node-color: #00f3ff;
+        transform: rotateX(-5deg) rotateY(-6deg) translateZ(25px);
+        border-top-color: rgba(0,243,255,0.5);
+      }
+      .battery { 
+        bottom: 15px; left: 15px; 
+        --node-color: #00ff9d;
+        transform: rotateX(5deg) rotateY(6deg) translateZ(25px);
+        border-bottom-color: rgba(0,255,157,0.5);
+      }
+      .load { 
+        bottom: 15px; right: 15px; 
+        --node-color: #ff0055;
+        transform: rotateX(5deg) rotateY(-6deg) translateZ(25px);
+        border-bottom-color: rgba(255,0,85,0.5);
+      }
+      
+      /* Hover - lift higher with sharp shadow */
+      .node:hover { 
+        transform: translateZ(45px) scale(1.03) !important;
+        box-shadow: 
+          8px 8px 0 rgba(0,0,0,0.5),
+          12px 12px 0 rgba(0,0,0,0.25),
+          0 15px 30px rgba(0,0,0,0.4);
+      }
+      
+      /* Pulse animation - subtle scale only */
+      .node.pulse { animation: node-pulse-3d 2s ease-in-out infinite; }
+      @keyframes node-pulse-3d { 
+        0%, 100% { transform: var(--node-transform) scale(1); } 
+        50% { transform: var(--node-transform) scale(1.02); } 
+      }
+      
+      @media (max-width: 400px) { 
+        .node { width: 105px; padding: 10px 8px; border-radius: 14px; } 
+        .solar, .grid { top: 10px; } 
+        .battery, .load { bottom: 10px; } 
+        .solar, .battery { left: 8px; } 
+        .grid, .load { right: 8px; } 
+      }
+      
+      /* === 3D SPHERE INVERTER === */
+      .inverter { 
+        position: absolute; 
+        top: 50%; left: 50%; 
+        width: 115px; height: 115px; 
+        transform: translate(-50%, -50%); 
+        border-radius: 50%; 
+        display: flex; flex-direction: column; align-items: center; justify-content: center; 
+        z-index: 10; 
+        cursor: pointer;
+        
+        /* 3D Sphere gradient */
+        background: radial-gradient(circle at 35% 30%, 
+          rgba(168, 85, 247, 0.25) 0%,
+          rgba(50,45,65,0.9) 25%, 
+          rgba(25,22,35,0.98) 60%,
+          rgba(10,8,18,1) 100%
+        );
+        border: 2px solid rgba(168, 85, 247, 0.25);
+        
+        /* Enhanced 3D sphere shadows */
+        box-shadow:
+          /* Inner sphere depth */
+          inset -25px -25px 50px rgba(0,0,0,0.9),
+          inset 15px 15px 30px rgba(168, 85, 247, 0.15),
+          inset 5px 5px 15px rgba(200,150,255,0.1),
+          /* Outer glow rings */
+          0 0 50px rgba(168, 85, 247, 0.25),
+          0 0 100px rgba(168, 85, 247, 0.1),
+          /* Drop shadow */
+          0 15px 40px rgba(0,0,0,0.5);
+      }
+      
+      /* Highlight spot on sphere */
+      .inverter::after {
+        content: '';
+        position: absolute;
+        top: 12%; left: 20%;
+        width: 25px; height: 15px;
+        background: radial-gradient(ellipse, rgba(255,255,255,0.3) 0%, transparent 70%);
+        border-radius: 50%;
+        filter: blur(3px);
+      }
+      
+      .inverter ha-icon { 
+        --mdc-icon-size: 30px; 
+        color: var(--inv-color, #a855f7); 
+        filter: drop-shadow(0 0 12px var(--inv-color, #a855f7)) drop-shadow(0 0 6px var(--inv-color, #a855f7)); 
+      }
+      .inverter .inv-label { 
+        font-size: 0.55rem; 
+        color: rgba(255,255,255,0.4); 
+        margin-top: 2px; 
+        text-transform: uppercase;
+        letter-spacing: 1.5px;
+      }
+      .inverter .inv-power { 
+        font-size: 0.75rem; 
+        font-weight: 700; 
+        color: var(--inv-color, #a855f7); 
+        text-shadow: 0 0 10px var(--inv-color, #a855f7);
+      }
+      .inverter .self-sufficiency { 
+        font-size: 0.6rem; 
+        color: #00ff9d; 
+        margin-top: 2px; 
+        font-weight: 700;
+        text-shadow: 0 0 8px rgba(0,255,157,0.5);
+      }
+      
+      /* Animated ring pulse */
+      .inverter::before { 
+        content: ''; 
+        position: absolute; 
+        width: 140%; height: 140%; 
+        border-radius: 50%; 
+        border: 1.5px solid rgba(168, 85, 247, 0.25); 
+        animation: ring-pulse-3d 3s ease-in-out infinite;
+        box-shadow: 0 0 20px rgba(168, 85, 247, 0.1);
+      }
+      @keyframes ring-pulse-3d { 
+        0%, 100% { transform: scale(0.85); opacity: 0.3; } 
+        50% { transform: scale(1); opacity: 0.8; } 
+      }
+      
+      /* Inverter hover - 3D pop out effect */
+      .inverter:hover {
+        transform: translate(-50%, -50%) scale(1.15);
+        box-shadow:
+          inset -25px -25px 50px rgba(0,0,0,0.9),
+          inset 15px 15px 30px rgba(168, 85, 247, 0.2),
+          0 0 60px rgba(168, 85, 247, 0.4),
+          0 20px 50px rgba(0,0,0,0.6);
+        border-color: rgba(168, 85, 247, 0.5);
+      }
+      .inverter:hover ha-icon {
+        transform: scale(1.2);
+      }
+      .inverter, .inverter ha-icon {
+        transition: all 0.3s ease;
+      }
+      
+      /* === SHARP TYPOGRAPHY === */
+      .main-val { 
+        font-family: 'Orbitron', 'Rajdhani', 'Segoe UI', sans-serif;
+        font-size: 1.4rem; 
+        font-weight: 800; 
+        margin: 5px 0;
+        letter-spacing: 1px;
+        /* Sharp text shadow - no blur */
+        text-shadow: 
+          1px 1px 0 rgba(0,0,0,0.5),
+          2px 2px 0 rgba(0,0,0,0.3);
+      }
+      
+      .label { 
+        font-size: 0.7rem; 
+        text-transform: uppercase; 
+        letter-spacing: 2px; 
+        font-weight: 600;
+        color: rgba(255,255,255,0.7);
+      }
+      
+      .sub-info { 
+        display: flex; flex-direction: column; align-items: center; 
+        margin-top: 8px; padding-top: 8px; 
+        border-top: 1px solid rgba(255,255,255,0.08); 
+        width: 100%; 
+      }
+      .sub-row { 
+        font-size: 0.68rem; 
+        color: var(--text-secondary); 
+        display: flex; justify-content: space-between; 
+        width: 100%; padding: 2px 0; 
+      }
       .sub-row span:last-child { color: var(--text-primary); font-weight: 600; }
-      .cost-row { font-size: 0.65rem; color: #00ff9d; margin-top: 2px; } .cost-row.negative { color: #ff0055; }
-      .status-badge { font-size: 0.6rem; padding: 2px 6px; border-radius: 8px; margin-top: 4px; text-transform: uppercase; }
-      .status-charging { background: rgba(0, 255, 157, 0.2); color: #00ff9d; }
-      .status-discharging { background: rgba(255, 221, 0, 0.2); color: #ffdd00; }
-      .status-import { background: rgba(255, 0, 85, 0.2); color: #ff0055; }
-      .status-export { background: rgba(0, 243, 255, 0.2); color: #00f3ff; }
+      .cost-row { 
+        font-size: 0.65rem; 
+        color: #00ff9d; 
+        margin-top: 3px;
+        font-weight: 700;
+      } 
+      .cost-row.negative { 
+        color: #ff0055; 
+      }
       
-      /* SVG */
-      svg.connections { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 3; overflow: visible; }
-      path.wire { fill: none; stroke: rgba(255,255,255,0.12); stroke-width: 3; }
+      /* Status badges with glow */
+      .status-badge { 
+        font-size: 0.58rem; 
+        padding: 3px 8px; 
+        border-radius: 10px; 
+        margin-top: 5px; 
+        text-transform: uppercase;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+      }
+      .status-charging { 
+        background: #00ff9d; 
+        color: #000; 
+        font-weight: 700;
+      }
+      .status-discharging { 
+        background: #ffdd00; 
+        color: #000;
+        font-weight: 700;
+      }
+      .status-import { 
+        background: #ff0055; 
+        color: #fff;
+        font-weight: 700;
+      }
+      .status-export { 
+        background: #00f3ff; 
+        color: #000;
+        font-weight: 700;
+      }
       
-      /* Enhanced Flow Dots with Comet Tail effect */
+      /* === SVG CONNECTIONS === */
+      svg.connections { 
+        position: absolute; top: 0; left: 0; 
+        width: 100%; height: 100%; 
+        pointer-events: none; z-index: 3; 
+        overflow: visible; 
+      }
+      path.wire { 
+        fill: none; 
+        stroke: rgba(255,255,255,0.1); 
+        stroke-width: 2.5;
+        filter: drop-shadow(0 0 3px rgba(255,255,255,0.1));
+      }
+      
+      /* === ENHANCED FLOW DOTS === */
       .flow-dot { 
-        filter: drop-shadow(0 0 10px currentColor) drop-shadow(0 0 5px currentColor) drop-shadow(0 0 3px currentColor);
+        filter: 
+          drop-shadow(0 0 12px currentColor) 
+          drop-shadow(0 0 6px currentColor) 
+          drop-shadow(0 0 3px currentColor);
         opacity: 0.95;
       }
       .flow-dot-tail { opacity: 0.4; filter: blur(2px); }
