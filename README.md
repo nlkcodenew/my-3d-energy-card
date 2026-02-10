@@ -164,5 +164,5 @@ MIT License - Feel free to modify and share!
 
 <p align="center">
   Made with ❤️ by nlkcodenew<br>
-  <a href="https://github.com/nlkcodenew/nlk-3d-energy-card">GitHub</a>
+  <a href="https://github.com/nlkcodenew/my-3d-energy-card">GitHub</a>
 </p>
