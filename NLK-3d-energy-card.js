@@ -1,5 +1,5 @@
 /*
- * NLK 3D ENERGY CARD - V1.6.0
+ * NLK 3D ENERGY CARD - V1.6.1
  * Features: 3D Energy Flow Visualization with Animated Wires
  */
 
@@ -9,7 +9,7 @@ import {
   css,
 } from "https://unpkg.com/lit-element@2.4.0/lit-element.js?module";
 
-const CARD_VERSION = "1.6.0";
+const CARD_VERSION = "1.6.1";
 
 // Load Google Fonts
 if (!document.querySelector('link[href*="fonts.googleapis.com/css2?family=Orbitron"]')) {
