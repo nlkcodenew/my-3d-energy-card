@@ -1,5 +1,5 @@
 /*
- * NLK 3D ENERGY CARD - V1.5.0
+ * NLK 3D ENERGY CARD - V1.6.0
  * Features: 3D Energy Flow Visualization with Animated Wires
  */
 
@@ -9,7 +9,7 @@ import {
   css,
 } from "https://unpkg.com/lit-element@2.4.0/lit-element.js?module";
 
-const CARD_VERSION = "1.5.0";
+const CARD_VERSION = "1.6.0";
 
 // Load Google Fonts
 if (!document.querySelector('link[href*="fonts.googleapis.com/css2?family=Orbitron"]')) {
@@ -73,30 +73,80 @@ class NLK3DEnergyCard extends LitElement {
 
   static get styles() {
     return css`
-      :host { display: block; padding: 0; --bg-card: var(--ha-card-background, #141414); --text-primary: var(--primary-text-color, #fff); --text-secondary: var(--secondary-text-color, #888); --border-color: var(--divider-color, rgba(255,255,255,0.1)); }
-      ha-card { background: var(--bg-card); overflow: hidden; border-radius: 16px; position: relative; height: var(--card-height, 420px); border: 1px solid var(--border-color); }
+      :host {
+        display: block;
+        padding: 0;
+        --bg-card: var(--ha-card-background, var(--card-background-color, #141414));
+        --surface-card: linear-gradient(
+          180deg,
+          color-mix(in srgb, var(--bg-card) 92%, white 8%) 0%,
+          color-mix(in srgb, var(--bg-card) 96%, black 4%) 100%
+        );
+        --surface-node: linear-gradient(
+          180deg,
+          color-mix(in srgb, var(--bg-card) 94%, white 6%) 0%,
+          color-mix(in srgb, var(--bg-card) 88%, black 12%) 100%
+        );
+        --surface-inverter: radial-gradient(
+          circle at 30% 30%,
+          color-mix(in srgb, var(--bg-card) 84%, white 16%),
+          color-mix(in srgb, var(--bg-card) 80%, black 20%)
+        );
+        --text-primary: var(--primary-text-color, #fff);
+        --text-secondary: var(--secondary-text-color, #888);
+        --border-color: color-mix(in srgb, var(--divider-color, rgba(255,255,255,0.1)) 78%, transparent 22%);
+        --glass-highlight: color-mix(in srgb, var(--text-primary) 10%, transparent 90%);
+        --shadow-soft: 0 16px 36px rgba(15, 23, 42, 0.14);
+        --shadow-strong: 0 22px 48px rgba(15, 23, 42, 0.20);
+      }
+      ha-card {
+        background: var(--surface-card);
+        overflow: hidden;
+        border-radius: 22px;
+        position: relative;
+        height: var(--card-height, 420px);
+        border: 1px solid var(--border-color);
+        box-shadow: var(--shadow-soft);
+        backdrop-filter: blur(18px);
+      }
       :host([data-size="compact"]) { --card-height: 320px; } :host([data-size="large"]) { --card-height: 520px; }
       @media (max-width: 400px) { ha-card { height: calc(var(--card-height, 420px) - 40px); } }
-      .bg-grid { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-image: linear-gradient(var(--border-color) 1px, transparent 1px), linear-gradient(90deg, var(--border-color) 1px, transparent 1px); background-size: 40px 40px; mask-image: radial-gradient(circle at center, black 40%, transparent 100%); opacity: 0.5; }
+      .bg-grid {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-image: linear-gradient(var(--border-color) 1px, transparent 1px), linear-gradient(90deg, var(--border-color) 1px, transparent 1px);
+        background-size: 40px 40px;
+        mask-image: radial-gradient(circle at center, black 40%, transparent 100%);
+        opacity: 0.28;
+      }
       .scene { width: 100%; height: 100%; position: relative; perspective: 1000px; }
       
       /* NODES with 3D perspective */
       .node { 
         position: absolute; width: 120px; padding: 10px; 
-        background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; 
+        background: var(--surface-node);
+        border: 1px solid var(--border-color);
+        border-radius: 16px;
         display: flex; flex-direction: column; align-items: center; 
         color: var(--text-primary); z-index: 5; 
-        box-shadow: 6px 6px 0 rgba(0,0,0,0.3), 0 8px 20px rgba(0,0,0,0.4); 
+        box-shadow: var(--shadow-soft);
         transition: transform 0.3s ease, box-shadow 0.3s ease; 
         cursor: pointer; 
         transform-style: preserve-3d;
+        backdrop-filter: blur(12px);
       }
       .node:hover { 
         transform: translateZ(30px) scale(1.03) !important; 
-        box-shadow: 8px 8px 0 rgba(0,0,0,0.4), 0 12px 30px rgba(0,0,0,0.5); 
+        box-shadow: var(--shadow-strong);
       }
       .node.pulse { animation: node-pulse 1.5s ease-in-out infinite; }
-      @keyframes node-pulse { 0%, 100% { box-shadow: 6px 6px 0 rgba(0,0,0,0.3), 0 8px 20px rgba(0,0,0,0.4); } 50% { box-shadow: 6px 6px 0 rgba(0,0,0,0.3), 0 8px 30px var(--pulse-color, rgba(255,255,255,0.3)); } }
+      @keyframes node-pulse {
+        0%, 100% { box-shadow: var(--shadow-soft); }
+        50% { box-shadow: var(--shadow-strong), 0 0 0 1px var(--pulse-color, rgba(255,255,255,0.3)); }
+      }
       
       .solar { top: 15px; left: 15px; --pulse-color: rgba(255,221,0,0.4); transform: rotateX(-4deg) rotateY(5deg) translateZ(15px); }
       .grid { top: 15px; right: 15px; --pulse-color: rgba(0,243,255,0.4); transform: rotateX(-4deg) rotateY(-5deg) translateZ(15px); }
@@ -115,13 +165,14 @@ class NLK3DEnergyCard extends LitElement {
       .inverter { 
         position: absolute; top: 50%; left: 50%; width: 110px; height: 110px; 
         transform: translate(-50%, -50%); 
-        background: radial-gradient(circle at 30% 30%, rgba(40,40,50,0.9), rgba(10,10,15,0.95)); 
+        background: var(--surface-inverter);
         border-radius: 50%; border: 2px solid rgba(168, 85, 247, 0.4); 
         display: flex; flex-direction: column; align-items: center; justify-content: center; 
         z-index: 10; 
-        box-shadow: 0 0 40px rgba(168, 85, 247, 0.2), inset 0 0 30px rgba(0,0,0,0.5); 
+        box-shadow: 0 16px 36px rgba(15, 23, 42, 0.22), inset 0 0 30px rgba(0,0,0,0.18);
         cursor: pointer; 
         transition: all 0.3s ease;
+        backdrop-filter: blur(14px);
       }
       .inverter:hover {
         transform: translate(-50%, -50%) scale(1.12);
@@ -130,7 +181,7 @@ class NLK3DEnergyCard extends LitElement {
       }
       .inverter ha-icon { --mdc-icon-size: 28px; color: var(--inv-color, #a855f7); filter: drop-shadow(0 0 8px var(--inv-color, #a855f7)); transition: transform 0.3s ease; }
       .inverter:hover ha-icon { transform: scale(1.15); }
-      .inverter .inv-label { font-size: 0.55rem; color: rgba(255,255,255,0.5); margin-top: 2px; }
+      .inverter .inv-label { font-size: 0.55rem; color: var(--text-secondary); margin-top: 2px; }
       .inverter .inv-power { font-size: 0.7rem; font-weight: 700; color: var(--inv-color, #a855f7); }
       .inverter .self-sufficiency { font-size: 0.6rem; color: #00ff9d; margin-top: 2px; font-weight: 600; }
       .inverter::before { content: ''; position: absolute; width: 130%; height: 130%; border-radius: 50%; border: 1px solid rgba(168, 85, 247, 0.3); animation: ring-pulse 3s ease-in-out infinite; }
@@ -143,11 +194,12 @@ class NLK3DEnergyCard extends LitElement {
         text-shadow: 1px 1px 0 rgba(0,0,0,0.4);
       }
       .label { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; opacity: 0.6; }
-      .sub-info { display: flex; flex-direction: column; align-items: center; margin-top: 6px; padding-top: 6px; border-top: 1px solid rgba(255,255,255,0.1); width: 100%; }
+      .sub-info { display: flex; flex-direction: column; align-items: center; margin-top: 6px; padding-top: 6px; border-top: 1px solid var(--border-color); width: 100%; }
       .sub-row { font-size: 0.7rem; color: var(--text-secondary); display: flex; justify-content: space-between; width: 100%; padding: 1px 0; }
       .sub-row span:last-child { color: var(--text-primary); font-weight: 600; }
-      .cost-row { font-size: 0.65rem; color: #00ff9d; margin-top: 2px; } .cost-row.negative { color: #ff0055; }
-      .status-badge { font-size: 0.6rem; padding: 2px 6px; border-radius: 8px; margin-top: 4px; text-transform: uppercase; }
+      .cost-row { font-size: 0.65rem; color: #00a86b; margin-top: 2px; font-weight: 700; }
+      .cost-row.negative { color: #d9485f; }
+      .status-badge { font-size: 0.6rem; padding: 3px 8px; border-radius: 999px; margin-top: 4px; text-transform: uppercase; letter-spacing: 0.04em; font-weight: 700; }
       .status-charging { background: rgba(0, 255, 157, 0.2); color: #00ff9d; }
       .status-discharging { background: rgba(255, 221, 0, 0.2); color: #ffdd00; }
       .status-import { background: rgba(255, 0, 85, 0.2); color: #ff0055; }

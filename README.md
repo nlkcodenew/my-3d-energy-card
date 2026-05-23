@@ -1,7 +1,7 @@
 # NLK 3D Energy Card
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-1.5.0-blue?style=for-the-badge" alt="Version">
+  <img src="https://img.shields.io/badge/version-1.6.0-blue?style=for-the-badge" alt="Version">
   <img src="https://img.shields.io/badge/HACS-Default-orange?style=for-the-badge" alt="HACS">
   <img src="https://img.shields.io/badge/Home%20Assistant-2024.1+-green?style=for-the-badge" alt="HA">
 </p>
@@ -25,6 +25,7 @@ Thẻ năng lượng 3D đẹp mắt cho Home Assistant với dòng chảy năng
 | 💡 **Node Pulse** | Nodes pulse when high power / Node nhấp nháy khi công suất cao |
 | 🌐 **Multi-Language** | English & Vietnamese / Hỗ trợ tiếng Anh & Việt |
 | 📱 **Responsive** | Better fonts on mobile / Font tối ưu trên mobile |
+| 🌓 **Theme-friendly** | Refined surfaces for both light and dark HA modes / Giao diện hợp cả Light và Dark |
 
 ---
 
@@ -139,6 +140,10 @@ The inverter circle automatically changes color based on temperature:
 ---
 
 ## 📝 Changelog
+
+### v1.6.0 (2026-05-23)
+- 🌓 **Theme-friendly surfaces** - Better fit for both HA light and dark modes
+- ✨ **Modernized card shell** - Softer glassy surfaces, cleaner shadows, better borders
 
 ### v1.5.0 (2026-01-14)
 - ✨ **Flow Styles** - Dashed or Dots animation
