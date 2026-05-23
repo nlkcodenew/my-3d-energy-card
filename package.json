@@ -1,6 +1,6 @@
 {
     "name": "nlk-3d-energy-card",
-    "version": "1.6.1",
+    "version": "1.6.2",
     "description": "3D/Hologram Energy Flow Card for Home Assistant",
     "main": "NLK-3d-energy-card.js",
     "scripts": {

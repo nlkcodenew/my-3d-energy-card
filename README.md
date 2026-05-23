@@ -1,7 +1,7 @@
 # NLK 3D Energy Card
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-1.6.1-blue?style=for-the-badge" alt="Version">
+  <img src="https://img.shields.io/badge/version-1.6.2-blue?style=for-the-badge" alt="Version">
   <img src="https://img.shields.io/badge/HACS-Default-orange?style=for-the-badge" alt="HACS">
   <img src="https://img.shields.io/badge/Home%20Assistant-2024.1+-green?style=for-the-badge" alt="HA">
 </p>
@@ -141,7 +141,7 @@ The inverter circle automatically changes color based on temperature:
 
 ## 📝 Changelog
 
-### v1.6.1 (2026-05-23)
+### v1.6.2 (2026-05-23)
 - 🌓 **Theme-friendly surfaces** - Better fit for both HA light and dark modes
 - ✨ **Modernized card shell** - Softer glassy surfaces, cleaner shadows, better borders
 
