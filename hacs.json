@@ -1,5 +1,7 @@
 {
   "name": "NLK 3D Energy Card",
   "render_readme": true,
-  "filename": "NLK-3d-energy-card.js"
+  "filename": "NLK-3d-energy-card.js",
+  "homeassistant": "2024.1.0",
+  "hide_default_branch": true
 }
