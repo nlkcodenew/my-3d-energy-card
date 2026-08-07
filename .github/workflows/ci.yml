@@ -1,0 +1,45 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: Test suite
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: npm install
+      - run: npm test
+
+  hacs:
+    name: HACS validation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hacs/action@main
+        with:
+          category: plugin
+
+  version-sync:
+    name: Version consistency
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: CARD_VERSION, package.json and README badge must match
+        run: |
+          CARD=$(grep -oP 'CARD_VERSION = "\K[^"]+' NLK-3d-energy-card.js)
+          PKG=$(node -p "require('./package.json').version")
+          BADGE=$(grep -oP 'version-\K[0-9]+\.[0-9]+\.[0-9]+' README.md | head -1)
+          HEADER=$(grep -oP 'NLK 3D ENERGY CARD - V\K[0-9.]+' NLK-3d-energy-card.js)
+          echo "CARD_VERSION=$CARD  package.json=$PKG  README badge=$BADGE  file header=$HEADER"
+          if [ "$CARD" != "$PKG" ] || [ "$CARD" != "$BADGE" ] || [ "$CARD" != "$HEADER" ]; then
+            echo "::error::Version mismatch across CARD_VERSION, package.json, README badge and file header"
+            exit 1
+          fi

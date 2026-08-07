@@ -1,17 +1,28 @@
 {
-    "name": "nlk-3d-energy-card",
-    "version": "1.9.0",
-    "description": "3D/Hologram Energy Flow Card for Home Assistant",
-    "main": "NLK-3d-energy-card.js",
-    "scripts": {
-        "test": "echo \"Error: no test specified\" && exit 1"
-    },
-    "keywords": [
-        "home-assistant",
-        "lovelace",
-        "3d",
-        "energy"
-    ],
-    "author": "nlkcodenew",
-    "license": "MIT"
+  "name": "nlk-3d-energy-card",
+  "version": "1.9.0",
+  "description": "3D/Hologram Energy Flow Card for Home Assistant",
+  "main": "NLK-3d-energy-card.js",
+  "scripts": {
+    "test": "node test/run.mjs"
+  },
+  "keywords": [
+    "home-assistant",
+    "lovelace",
+    "3d",
+    "energy"
+  ],
+  "author": "nlkcodenew",
+  "license": "MIT",
+  "devDependencies": {
+    "jsdom": "^24.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nlkcodenew/my-3d-energy-card.git"
+  },
+  "homepage": "https://github.com/nlkcodenew/my-3d-energy-card",
+  "bugs": {
+    "url": "https://github.com/nlkcodenew/my-3d-energy-card/issues"
+  }
 }

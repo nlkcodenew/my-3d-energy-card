@@ -4,6 +4,8 @@
   <img src="https://img.shields.io/badge/version-1.9.0-blue?style=for-the-badge" alt="Version">
   <img src="https://img.shields.io/badge/HACS-Default-orange?style=for-the-badge" alt="HACS">
   <img src="https://img.shields.io/badge/Home%20Assistant-2024.1+-green?style=for-the-badge" alt="HA">
+  <br>
+  <a href="https://github.com/nlkcodenew/my-3d-energy-card/actions/workflows/ci.yml"><img src="https://github.com/nlkcodenew/my-3d-energy-card/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
 </p>
 
 A beautiful 3D-styled energy flow card for Home Assistant with animated power flows, customizable colors, and multi-language support.
@@ -321,6 +323,45 @@ byte-identical to v1.7.2; the only CSS removed was an unused animation.
 - ✨ Color Editor in UI
 - ✨ Battery Time Remaining
 - ✨ Card Size Options
+
+---
+
+## 🛠️ Development / Phát triển
+
+The card is a single file with no build step — edit `NLK-3d-energy-card.js` directly.
+
+Thẻ này là một file duy nhất, không cần build — sửa trực tiếp `NLK-3d-energy-card.js`.
+
+### Tests / Kiểm thử
+
+```bash
+npm install   # lần đầu (jsdom)
+npm test
+```
+
+72 checks across 6 suites, running outside Home Assistant with stubs for Lit and `hass`.
+See [`test/README.md`](test/README.md) for what each suite covers — **and its limits**: jsdom
+verifies selector matching, not real CSS cascade, so visual changes still need to be checked by eye
+in Home Assistant.
+
+72 test trong 6 suite, chạy ngoài Home Assistant bằng stub cho Lit và `hass`.
+Xem [`test/README.md`](test/README.md) — **kèm giới hạn**: jsdom chỉ kiểm selector, không kiểm
+cascade CSS thật, nên thay đổi giao diện vẫn cần xem bằng mắt trong Home Assistant.
+
+### Known issues / Vấn đề đã biết
+
+See [`KNOWN-ISSUES.md`](KNOWN-ISSUES.md) for a full audit: what is fixed, what is still open, and a
+suggested order for tackling the rest.
+
+Xem [`KNOWN-ISSUES.md`](KNOWN-ISSUES.md): đã sửa gì, còn lại gì, và thứ tự đề xuất làm tiếp.
+
+### Releasing / Phát hành
+
+HACS tracks **GitHub Releases**, not commits. After merging, create a release with a `vX.Y.Z` tag.
+Keep `CARD_VERSION`, `package.json`, the README badge and the file header in sync — CI enforces this.
+
+HACS theo **GitHub Releases**, không theo commit. Sau khi merge, tạo release với tag `vX.Y.Z`.
+Giữ `CARD_VERSION`, `package.json`, badge README và header file khớp nhau — CI sẽ kiểm tra.
 
 ---
 

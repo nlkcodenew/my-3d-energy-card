@@ -11,3 +11,7 @@ Thumbs.db
 # Editor
 .vscode/
 *.swp
+
+# Test artifacts
+test/card.mjs
+package-lock.json
