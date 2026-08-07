@@ -1,5 +1,5 @@
 /*
- * NLK 3D ENERGY CARD - V1.6.2
+ * NLK 3D ENERGY CARD - V1.7.0
  * Features: 3D Energy Flow Visualization with Animated Wires
  */
 
@@ -9,7 +9,7 @@ import {
   css,
 } from "https://unpkg.com/lit-element@2.4.0/lit-element.js?module";
 
-const CARD_VERSION = "1.6.2";
+const CARD_VERSION = "1.7.0";
 
 // Load Google Fonts
 if (!document.querySelector('link[href*="fonts.googleapis.com/css2?family=Orbitron"]')) {
@@ -26,8 +26,8 @@ console.info(
 );
 
 const TRANSLATIONS = {
-  en: { solar: "Solar", grid: "Grid", battery: "Battery", load: "Consumption", inverter: "Inverter", today: "Today", buy: "Buy", sell: "Sell", importing: "← Import", exporting: "→ Export", charging: "⚡ Charging", discharging: "↗ Discharging", charge: "Charge", discharge: "Discharge", self: "Self" },
-  vi: { solar: "Mặt trời", grid: "Lưới điện", battery: "Lưu trữ", load: "Tiêu thụ", inverter: "Inverter", today: "Hôm nay", buy: "Mua", sell: "Bán", importing: "← Nhập", exporting: "→ Xuất", charging: "⚡ Đang sạc", discharging: "↗ Đang xả", charge: "Sạc", discharge: "Xả", self: "Tự cấp" }
+  en: { solar: "Solar", grid: "Grid", battery: "Battery", load: "Consumption", inverter: "Inverter", today: "Today", buy: "Buy", sell: "Sell", importing: "← Import", exporting: "→ Export", charging: "⚡ Charging", discharging: "↗ Discharging", charge: "Charge", discharge: "Discharge", self: "Self", offgrid: "Off-grid", offgridTip: "Grid down - using inverter AC output" },
+  vi: { solar: "Mặt trời", grid: "Lưới điện", battery: "Lưu trữ", load: "Tiêu thụ", inverter: "Inverter", today: "Hôm nay", buy: "Mua", sell: "Bán", importing: "← Nhập", exporting: "→ Xuất", charging: "⚡ Đang sạc", discharging: "↗ Đang xả", charge: "Sạc", discharge: "Xả", self: "Tự cấp", offgrid: "Mất lưới", offgridTip: "Mất điện lưới - đang dùng AC output của inverter" }
 };
 
 const DEFAULT_COLORS = {
@@ -50,12 +50,14 @@ class NLK3DEnergyCard extends LitElement {
       card_size: "normal",
       flow_style: "dashed",
       compact_mode: false,
+      offgrid_grid_threshold: 1,
+      offgrid_min_power: 0,
       colors: {},
       entities: {
         solar: "sensor.solar_power", solar_daily: "sensor.solar_energy_daily", total_yield: "",
         grid: "sensor.grid_power", grid_buy_daily: "sensor.grid_import_daily", grid_sell_daily: "sensor.grid_export_daily",
         battery_soc: "sensor.battery_level", battery_power: "sensor.battery_power", battery_daily_charge: "sensor.battery_charge_daily", battery_daily_discharge: "sensor.battery_discharge_daily",
-        load: "sensor.load_power", load_daily: "sensor.load_energy_daily", inverter_temp: "sensor.inverter_temperature"
+        load: "sensor.load_power", load_offgrid: "", load_daily: "sensor.load_energy_daily", inverter_temp: "sensor.inverter_temperature"
       }
     };
   }
@@ -204,6 +206,7 @@ class NLK3DEnergyCard extends LitElement {
       .status-discharging { background: rgba(255, 221, 0, 0.2); color: #ffdd00; }
       .status-import { background: rgba(255, 0, 85, 0.2); color: #ff0055; }
       .status-export { background: rgba(0, 243, 255, 0.2); color: #00f3ff; }
+      .status-offgrid { background: rgba(255, 165, 0, 0.22); color: #ffa500; }
       
       /* Value change flash animation */
       .main-val.flash { animation: val-flash 0.5s ease-out; }
@@ -211,6 +214,10 @@ class NLK3DEnergyCard extends LitElement {
       
       /* Compact mode */
       :host([data-compact]) .sub-info { display: none; }
+      /* Off-grid warning must stay visible even in compact mode. */
+      ha-card[data-compact] .sub-info > *:not(.status-offgrid) { display: none; }
+      ha-card[data-compact] .sub-info:not(:has(.status-offgrid)) { display: none; }
+      ha-card[data-compact] .sub-info { margin-top: 4px; padding-top: 4px; }
       :host([data-compact]) .node { padding: 8px; }
       :host([data-compact]) .inverter .self-sufficiency { display: none; }
       
@@ -255,6 +262,14 @@ class NLK3DEnergyCard extends LitElement {
     const val = parseFloat(this.hass.states[e].state);
     return isNaN(val) ? 0 : val;
   }
+  // True only when the entity exists AND its state parses as a finite number.
+  // Distinguishes "sensor reports 0 W" from "sensor missing/unavailable/unknown".
+  _hasState(e) {
+    if (!e || !this.hass || !this.hass.states[e]) return false;
+    const st = this.hass.states[e].state;
+    if (st === 'unavailable' || st === 'unknown' || st === '' || st == null) return false;
+    return Number.isFinite(parseFloat(st));
+  }
   _getDisplay(e) {
     if (!e || !this.hass || !this.hass.states[e]) return "--";
     const s = this.hass.states[e];
@@ -288,12 +303,39 @@ class NLK3DEnergyCard extends LitElement {
     const batP = this._getState(E.battery_power);
     const batSoc = this._getState(E.battery_soc);
     const batteryInvert = this.config.battery_invert || false;
-    const loadP = this._getState(E.load) || Math.abs(solarP + gridP + batP);
 
     const isGridImport = gridP > 0;
     const isBatCharge = batteryInvert ? (batP > 0) : (batP < 0);
     const absBatP = Math.abs(batP);
     const absGridP = Math.abs(gridP);
+
+    // ---- LOAD SOURCE RESOLUTION ----------------------------------------
+    // Some inverters (e.g. Lumentree) report an unreliable `load_power` while
+    // running off-grid, but report a correct `ac_output_power`. When a
+    // dedicated off-grid entity is configured we switch to it as soon as the
+    // grid is effectively idle.
+    //
+    // Grid is treated as "down" when |grid| < offgrid_grid_threshold, rather
+    // than grid <= 0, so that active EXPORT (negative grid) is not mistaken
+    // for a blackout and small negative sensor noise still counts as 0 W.
+    const offgridGridThreshold = Number.isFinite(this.config.offgrid_grid_threshold)
+      ? Math.abs(this.config.offgrid_grid_threshold) : 1;
+    const offgridMinPower = Number.isFinite(this.config.offgrid_min_power)
+      ? Math.abs(this.config.offgrid_min_power) : 0;
+
+    const hasOffgridEntity = this._hasState(E.load_offgrid);
+    const offgridP = hasOffgridEntity ? this._getState(E.load_offgrid) : 0;
+    const gridIsDown = this._hasState(E.grid) && absGridP < offgridGridThreshold;
+    // offgridMinPower defaults to 0 (disabled). Set it only if you want the
+    // switch suppressed below a certain inverter output.
+    const usingOffgridLoad = hasOffgridEntity && gridIsDown
+      && Math.abs(offgridP) >= offgridMinPower;
+
+    const loadEntity = usingOffgridLoad ? E.load_offgrid : E.load;
+    const loadP = usingOffgridLoad
+      ? offgridP
+      : (this._hasState(E.load) ? this._getState(E.load) : Math.abs(solarP + gridP + batP));
+    // --------------------------------------------------------------------
 
     // Self-sufficiency Logic
     let selfSufficiency = 0;
@@ -415,12 +457,13 @@ class NLK3DEnergyCard extends LitElement {
             </div>
           </div>
 
-          <div class="node load ${shouldPulse(loadP) ? 'pulse' : ''}" id="n-load" @click=${() => this._handlePopup(E.load)} style="border-bottom-color: ${cLoad};">
+          <div class="node load ${shouldPulse(loadP) ? 'pulse' : ''}" id="n-load" @click=${() => this._handlePopup(loadEntity)} style="border-bottom-color: ${cLoad};">
             <ha-icon icon="mdi:home-lightning-bolt" style="color: ${cLoad};"></ha-icon>
             <span class="label">${t('load')}</span>
             <span class="main-val" style="color: ${cLoad};">${loadP.toFixed(0)} W</span>
             <div class="sub-info">
               <div class="sub-row"><span>${t('today')}:</span><span>${this._getDisplay(E.load_daily)}</span></div>
+              ${usingOffgridLoad ? html`<span class="status-badge status-offgrid" title="${t('offgridTip')}">⚠ ${t('offgrid')}</span>` : ''}
             </div>
           </div>
 
@@ -497,12 +540,22 @@ class NLK3DEnergyCardEditor extends LitElement {
     const sub = t.subValue;
     let n = { ...this.config };
     if (sub) n.entities = { ...n.entities, [sub]: t.value };
-    else if (t.configValue) n[t.configValue] = t.type === 'number' ? parseFloat(t.value) : t.value;
+    else if (t.configValue) {
+      if (t.type === 'number') {
+        const num = parseFloat(t.value);
+        // Never write NaN into the config (breaks YAML and downstream maths).
+        // Empty / invalid input removes the key so the card default applies.
+        if (Number.isFinite(num)) n[t.configValue] = num;
+        else delete n[t.configValue];
+      } else {
+        n[t.configValue] = t.value;
+      }
+    }
     const e = new Event("config-changed", { bubbles: true, composed: true });
     e.detail = { config: n };
     this.dispatchEvent(e);
   }
-  static get styles() { return css` .cfg { padding: 16px; } h3 { margin: 16px 0 8px; border-bottom: 1px solid #444; color: var(--primary-text-color); } .row { margin-bottom: 12px; } label { display: block; font-size: 0.8rem; color: #888; margin-bottom: 4px; } input, select { width: 100%; padding: 8px; border: 1px solid #444; background: var(--card-background-color); color: var(--primary-text-color); border-radius: 4px; box-sizing: border-box; } input[type="checkbox"] { width: auto; margin-right: 8px; vertical-align: middle; } label:has(input[type="checkbox"]) { display: flex; align-items: center; color: var(--primary-text-color); cursor: pointer; } .inline { display: flex; gap: 8px; } .inline > * { flex: 1; } `; }
+  static get styles() { return css` .cfg { padding: 16px; } h3 { margin: 16px 0 8px; border-bottom: 1px solid #444; color: var(--primary-text-color); } .row { margin-bottom: 12px; } label { display: block; font-size: 0.8rem; color: #888; margin-bottom: 4px; } input, select { width: 100%; padding: 8px; border: 1px solid #444; background: var(--card-background-color); color: var(--primary-text-color); border-radius: 4px; box-sizing: border-box; } input[type="checkbox"] { width: auto; margin-right: 8px; vertical-align: middle; } label:has(input[type="checkbox"]) { display: flex; align-items: center; color: var(--primary-text-color); cursor: pointer; } .inline { display: flex; gap: 8px; } .inline > * { flex: 1; } .hint { font-size: 0.72rem; line-height: 1.45; color: var(--secondary-text-color, #888); margin: -4px 0 12px; } .hint code { background: var(--divider-color, rgba(127,127,127,0.2)); padding: 1px 4px; border-radius: 3px; } `; }
   render() {
     if (!this.hass || !this.config) return html``;
     const E = this.config.entities || {};
@@ -534,7 +587,15 @@ class NLK3DEnergyCardEditor extends LitElement {
       <div class="row"><label><input type="checkbox" .checked=${this.config.battery_invert || false} @change=${(e) => { const ev = new Event("config-changed", { bubbles: true, composed: true }); ev.detail = { config: { ...this.config, battery_invert: e.target.checked } }; this.dispatchEvent(ev) }}> Invert Battery (+ = Charge)</label></div>
       
       <h3>🏠 Load</h3>
-      <div class="inline">${this._i("Power", "load", E.load, true)}${this._i("Daily", "load_daily", E.load_daily, true)}</div>
+      ${this._i("Power (Primary)", "load", E.load, true)}
+      ${this._i("Power (Off-grid / AC output)", "load_offgrid", E.load_offgrid, true)}
+      <p class="hint">Tuỳ chọn. Khi lưới mất điện (|Grid Power| &lt; ngưỡng dưới đây), thẻ sẽ dùng sensor này thay cho Power (Primary). Dùng cho inverter báo sai <code>load_power</code> lúc off-grid.</p>
+      <div class="inline">
+        ${this._i("Ngưỡng lưới = mất điện (W)", "offgrid_grid_threshold", this.config.offgrid_grid_threshold, false, "number")}
+        ${this._i("Công suất off-grid tối thiểu (W)", "offgrid_min_power", this.config.offgrid_min_power, false, "number")}
+      </div>
+      <p class="hint">Ngưỡng lưới mặc định <code>1</code>. Công suất tối thiểu mặc định <code>0</code> (tắt) — chỉ đặt &gt;0 nếu muốn bỏ qua khi inverter xuất rất thấp.</p>
+      ${this._i("Daily", "load_daily", E.load_daily, true)}
       
       <h3>⚡ Inverter</h3>
       ${this._i("Temperature", "inverter_temp", E.inverter_temp, true)}
