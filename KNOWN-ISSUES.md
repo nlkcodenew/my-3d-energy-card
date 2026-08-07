@@ -766,18 +766,26 @@ tự hết. Đã **thêm mới** vào editor: `load_offgrid`, `offgrid_grid_thre
 | 7.2 | `hacs.json` thiếu key | ✅ **XONG** | v1.7.0 |
 | 7.3 | README link tới repo sai tên (404) | ✅ **XONG** | v1.7.0 |
 | 7.4 | README không tài liệu hoá `card_size` | ✅ **Không còn áp dụng** | v1.8.1 |
-| 7.5 | Không có test / lint / CI trong repo | ⬜ CHƯA LÀM | — |
+| 7.5 | Không có test / lint / CI trong repo | ✅ **XONG** | v1.9.0 |
 | 7.6 | Lịch sử commit nhiều message `"1"` | ⛔ KHÔNG LÀM (không rewrite history đã publish) |
 | 7.7 | Không có git tag / Release | ✅ **XONG** | v1.7.0+ |
-| 7.8 | Version khai ở 3 nơi, dễ lệch | ⬜ CHƯA LÀM | — |
+| 7.8 | Version khai ở 3 nơi, dễ lệch | ✅ **XONG** (CI chặn) | v1.9.0 |
 | 7.9 | Changelog thiếu v1.6.0 / v1.6.1 | ⬜ CHƯA LÀM | — |
 | 7.10 | Không có screenshot trong README | ⬜ CHƯA LÀM | — |
 
 **Ghi chú 7.2:** đã thêm `homeassistant: 2024.1.0` và `hide_default_branch: true`.
 `hide_default_branch` quan trọng: buộc HACS chỉ theo Releases, bỏ qua tag rác.
 
-**Ghi chú 7.5:** ⚠️ **57 test đang nằm ở `test-suite/`, CHƯA commit vào repo.**
-`/tmp` mất khi reboot. Xem phần "Công cụ test" bên dưới.
+**Ghi chú 7.5:** ✅ Đã commit **72 test** vào `test/` + GitHub Actions (`.github/workflows/ci.yml`)
+với 3 job: `test` (npm test), `hacs` (hacs/action validate), `version-sync`.
+Chạy: `npm install && npm test`.
+
+**Ghi chú 7.8:** job `version-sync` trong CI fail nếu `CARD_VERSION`, `package.json`,
+badge README và header file lệch nhau — lỗi này trước đây rất dễ mắc.
+
+**Ghi chú thêm — CI đã bắt được 2 lỗi thật ngay lần chạy đầu:** repo thiếu GitHub
+*description* và *topics*, khiến `hacs/action` fail 2/8 check. Đã bổ sung description và 8 topics.
+Cả 3 job hiện pass.
 
 **Ghi chú 7.7:** đã dọn 15 tag rác `v3.x` (dự án cũ `hiasm-energy-card.js`) khỏi remote.
 Backup mapping tag→commit ở `(local backup, not in repo)` (cũng sẽ mất khi reboot).
@@ -804,10 +812,10 @@ Backup mapping tag→commit ở `(local backup, not in repo)` (cũng sẽ mất 
 
 | Trạng thái | Số mục |
 |---|---|
-| ✅ Đã xong (gồm "một phần") | **17** |
+| ✅ Đã xong (gồm "một phần") | **19** |
 | 🗑️ Đã xoá feature | **2** |
 | ⛔ Quyết định không làm | **2** |
-| ⬜ Chưa làm | **43** |
+| ⬜ Chưa làm | **41** |
 | **Tổng** | **64** |
 
 ---
@@ -849,12 +857,8 @@ offgrid_min_power: 0
 
 ## Công cụ test
 
-✅ **Đã lưu ra `test-suite/`** (an toàn qua reboot) — **72 test, 6 suite**.
-Chạy bằng `./run.sh`. Có `README.md` riêng mô tả từng suite và giới hạn.
-
-⚠️ Vẫn **chưa commit vào repo** — xem mục 7.5.
-
-Backup tag rác đã lưu ở `(local backup, not in repo)`.
+✅ **Đã commit vào repo** tại `test/` — **72 test, 6 suite**. Chạy: `npm install && npm test`.
+Xem `test/README.md` mô tả từng suite và giới hạn. CI tự chạy mỗi lần push/PR.
 
 | File | Case | Kiểm gì |
 |---|---|---|
@@ -874,8 +878,8 @@ sed 's|https://unpkg.com/lit-element@2.4.0/lit-element.js?module|./litstub.js|' 
 for f in test.mjs selfsuf.mjs supports.mjs legacy2.mjs lifecycle.mjs; do node $f; done
 ```
 
-**Việc nên làm sớm:** commit các test này vào repo (mục 7.5). Chúng đã chứng minh giá trị —
-`domtest.mjs` tái hiện chính xác cả 2 bug đã gây ra ở v1.7.0/v1.7.1.
+`domtest.mjs` tái hiện chính xác cả 2 bug đã gây ra ở v1.7.0/v1.7.1, nên chúng không thể lặp lại
+mà CI không phát hiện.
 
 ### Giới hạn của bộ test — PHẢI biết
 
@@ -918,10 +922,10 @@ khẳng định là cache và bắt họ hard reload / xoá cache / sửa URL. S
 ## Nếu làm tiếp, thứ tự đề xuất
 
 **Ưu tiên cao — rủi ro thấp:**
-1. **Mục 7.5** — commit 57 test vào repo + thêm GitHub Actions (lint + test). Bảo vệ mọi thay đổi sau này.
-2. **Mục 3.2** — bỏ/nhúng Google Fonts. Đang ghi vào `document.head` toàn cục. Không cần build step.
-3. **Mục 8.2** — `prefers-reduced-motion`. Vấn đề tiếp cận thật, sửa dễ, chỉ thêm 1 khối `@media`.
-4. **Mục 7.10** — thêm screenshot vào README. Card thiên về hình ảnh nhưng README không có ảnh nào.
+1. **Mục 3.2** — bỏ/nhúng Google Fonts. Đang ghi vào `document.head` toàn cục. Không cần build step.
+2. **Mục 8.2** — `prefers-reduced-motion`. Vấn đề tiếp cận thật, sửa dễ, chỉ thêm 1 khối `@media`.
+3. **Mục 7.10** — thêm screenshot vào README. Card thiên về hình ảnh nhưng README không có ảnh nào.
+4. **Mục 7.9** — bổ sung changelog v1.6.0 / v1.6.1 còn thiếu.
 
 **Ưu tiên trung bình:**
 5. **Mục 6.1** — màu inverter tuỳ chỉnh bị nhiệt độ ghi đè âm thầm. Thêm option `inverter_temp_color`.
