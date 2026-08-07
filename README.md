@@ -1,7 +1,7 @@
 # NLK 3D Energy Card
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-1.7.2-blue?style=for-the-badge" alt="Version">
+  <img src="https://img.shields.io/badge/version-1.7.3-blue?style=for-the-badge" alt="Version">
   <img src="https://img.shields.io/badge/HACS-Default-orange?style=for-the-badge" alt="HACS">
   <img src="https://img.shields.io/badge/Home%20Assistant-2024.1+-green?style=for-the-badge" alt="HA">
 </p>
@@ -220,6 +220,18 @@ The inverter circle automatically changes color based on temperature:
 ---
 
 ## 📝 Changelog
+
+### v1.7.3 (2026-08-07)
+Internal cleanup only — **no visual or behavioural changes**. The rendered HTML template is
+byte-identical to v1.7.2; the only CSS removed was an unused animation.
+
+- 🧹 Removed dead code: unused `getFlowClass()` helper, no-op `nodeKey` variable, and the
+  `.main-val.flash` / `val-flash` CSS that no code ever applied
+- 🐛 **Fixed memory leak** - the `resize` listener was never removed. Added `disconnectedCallback()`
+  to clean up the listener and pending timer. The card now also re-draws its wires correctly after
+  being re-attached (dashboard edit, view switch)
+- ♻️ `_handlePopup` now uses `CustomEvent` instead of assigning `.detail` onto a plain `Event`
+- ➕ Added `getCardSize()` so HA's masonry layout can size the card properly
 
 ### v1.7.2 (2026-08-07)
 - ↩️ **Reverted all compact-mode / card_size CSS changes** from v1.7.0 and v1.7.1. Both versions

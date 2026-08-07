@@ -1,5 +1,5 @@
 /*
- * NLK 3D ENERGY CARD - V1.7.2
+ * NLK 3D ENERGY CARD - V1.7.3
  * Features: 3D Energy Flow Visualization with Animated Wires
  */
 
@@ -9,7 +9,7 @@ import {
   css,
 } from "https://unpkg.com/lit-element@2.4.0/lit-element.js?module";
 
-const CARD_VERSION = "1.7.2";
+const CARD_VERSION = "1.7.3";
 
 // Load Google Fonts
 if (!document.querySelector('link[href*="fonts.googleapis.com/css2?family=Orbitron"]')) {
@@ -63,6 +63,14 @@ class NLK3DEnergyCard extends LitElement {
   }
 
   static getConfigElement() { return document.createElement("nlk-3d-energy-card-editor"); }
+
+  // Masonry layout hint for HA. Roughly height / 50px per row.
+  getCardSize() {
+    const size = this.config?.card_size;
+    if (size === 'compact') return 7;
+    if (size === 'large') return 11;
+    return 9;
+  }
 
   setConfig(config) {
     if (!config.entities) throw new Error("Please check config via Editor.");
@@ -208,10 +216,6 @@ class NLK3DEnergyCard extends LitElement {
       .status-export { background: rgba(0, 243, 255, 0.2); color: #00f3ff; }
       .status-offgrid { background: rgba(255, 165, 0, 0.22); color: #ffa500; }
       
-      /* Value change flash animation */
-      .main-val.flash { animation: val-flash 0.5s ease-out; }
-      @keyframes val-flash { 0% { filter: brightness(2); transform: scale(1.1); } 100% { filter: brightness(1); transform: scale(1); } }
-      
       /* Compact mode */
       :host([data-compact]) .sub-info { display: none; }
       :host([data-compact]) .node { padding: 8px; }
@@ -272,7 +276,13 @@ class NLK3DEnergyCard extends LitElement {
     const v = parseFloat(s.state);
     return isNaN(v) ? s.state : `${v.toFixed(1)} ${s.attributes.unit_of_measurement || ''}`;
   }
-  _handlePopup(e) { if (!e) return; const ev = new Event("hass-more-info", { bubbles: true, composed: true }); ev.detail = { entityId: e }; this.dispatchEvent(ev); }
+  _handlePopup(e) {
+    if (!e) return;
+    // CustomEvent so detail is set properly instead of being bolted onto Event.
+    this.dispatchEvent(new CustomEvent("hass-more-info", {
+      bubbles: true, composed: true, detail: { entityId: e }
+    }));
+  }
   _getBatteryIcon(s) { if (s >= 90) return "mdi:battery"; if (s >= 70) return "mdi:battery-80"; if (s >= 50) return "mdi:battery-60"; if (s >= 30) return "mdi:battery-40"; if (s >= 10) return "mdi:battery-20"; return "mdi:battery-outline"; }
   _t(k) { const l = this.config?.language || 'vi'; return TRANSLATIONS[l]?.[k] || TRANSLATIONS['vi'][k] || k; }
 
@@ -385,13 +395,6 @@ class NLK3DEnergyCard extends LitElement {
       return `stroke: ${color}; --flow-duration: ${duration}s; opacity: 1; ${reverse ? 'animation-direction: reverse;' : ''}`;
     };
 
-    // Flow style class helper
-    const getFlowClass = (power, reverse = false) => {
-      const absP = Math.abs(power);
-      if (absP < 5) return '';
-      return flowStyle; // 'dashed' or 'dots'
-    };
-
     // Compact mode
     const isCompact = this.config.compact_mode || false;
 
@@ -479,9 +482,27 @@ class NLK3DEnergyCard extends LitElement {
     super.updated(changedProps);
     if (!this._wired) {
       this._wired = true;
-      setTimeout(() => this._drawWires(), 100);
-      window.addEventListener('resize', () => this._drawWires());
+      // Keep a reference so disconnectedCallback can clean both up. Without
+      // this the listener outlived the element every time the card was
+      // re-attached (dashboard edit, view switch).
+      this._onResize = () => this._drawWires();
+      this._wireTimer = setTimeout(() => this._drawWires(), 100);
+      window.addEventListener('resize', this._onResize);
     }
+  }
+
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    if (this._onResize) {
+      window.removeEventListener('resize', this._onResize);
+      this._onResize = null;
+    }
+    if (this._wireTimer) {
+      clearTimeout(this._wireTimer);
+      this._wireTimer = null;
+    }
+    // Allow updated() to re-wire if the element is re-attached later.
+    this._wired = false;
   }
 
   _drawWires() {
@@ -497,9 +518,8 @@ class NLK3DEnergyCard extends LitElement {
 
     const newPathData = {};
     ['solar', 'grid', 'bat', 'load'].forEach(key => {
-      // Map key to DOM ID (solar -> n-solar)
-      const nodeKey = key === 'bat' ? 'bat' : key;
-      const node = root.getElementById(`n-${nodeKey}`);
+      // DOM ids are n-solar / n-grid / n-bat / n-load
+      const node = root.getElementById(`n-${key}`);
       if (!node) return;
 
       const nRect = node.getBoundingClientRect();
