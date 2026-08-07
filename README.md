@@ -1,7 +1,7 @@
 # NLK 3D Energy Card
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-1.7.0-blue?style=for-the-badge" alt="Version">
+  <img src="https://img.shields.io/badge/version-1.7.1-blue?style=for-the-badge" alt="Version">
   <img src="https://img.shields.io/badge/HACS-Default-orange?style=for-the-badge" alt="HACS">
   <img src="https://img.shields.io/badge/Home%20Assistant-2024.1+-green?style=for-the-badge" alt="HA">
 </p>
@@ -220,6 +220,14 @@ The inverter circle automatically changes color based on temperature:
 ---
 
 ## 📝 Changelog
+
+### v1.7.1 (2026-08-07)
+- 🐛 **Fixed** - Sub-info rows (PV1/PV2, Today, Buy/Sell, Charge/Discharge) disappeared from all
+  nodes when `compact_mode` was enabled. A CSS rule added in v1.7.0 for the off-grid badge was
+  hiding them unconditionally
+- 🐛 **Fixed** - `compact_mode` and `card_size` now actually work. Both were scoped to
+  `:host([data-...])` while the attribute is set on the inner `<ha-card>`, so neither had any
+  effect before
 
 ### v1.7.0 (2026-08-07)
 - 🔌 **Off-grid Load Source** - New `load_offgrid` entity. The card automatically switches from
