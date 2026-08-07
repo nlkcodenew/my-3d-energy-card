@@ -1,7 +1,7 @@
 # NLK 3D Energy Card
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-1.8.0-blue?style=for-the-badge" alt="Version">
+  <img src="https://img.shields.io/badge/version-1.8.1-blue?style=for-the-badge" alt="Version">
   <img src="https://img.shields.io/badge/HACS-Default-orange?style=for-the-badge" alt="HACS">
   <img src="https://img.shields.io/badge/Home%20Assistant-2024.1+-green?style=for-the-badge" alt="HA">
 </p>
@@ -218,6 +218,24 @@ The inverter circle automatically changes color based on temperature:
 ---
 
 ## 📝 Changelog
+
+### v1.8.1 (2026-08-07)
+- 🗑️ **Removed `card_size`** - same story as `compact_mode` in v1.8.0: the option had never worked
+  in any released version, because its CSS was scoped to `:host([data-size])` while the attribute
+  was set on the inner `<ha-card>`. It had no editor control either, so it was YAML-only and inert.
+- ℹ️ The card is a fixed **420px** tall (380px below 400px width). The `--card-height` CSS variable
+  is **kept**, so you can still override the height with `card-mod` if you want:
+
+  ```yaml
+  card_mod:
+    style: |
+      ha-card { --card-height: 520px; }
+  ```
+
+> **Existing configs are safe.** A leftover `card_size:` line is ignored — no error, no visual
+> change. Same for `compact_mode:` removed in v1.8.0.
+>
+> **Config cũ vẫn an toàn.** Dòng `card_size:` còn sót sẽ bị bỏ qua — không lỗi, không đổi hiển thị.
 
 ### v1.8.0 (2026-08-07)
 - 🗑️ **Removed Compact Mode** - the `compact_mode` option and its editor checkbox are gone. The

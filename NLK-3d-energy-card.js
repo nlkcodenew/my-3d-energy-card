@@ -1,5 +1,5 @@
 /*
- * NLK 3D ENERGY CARD - V1.8.0
+ * NLK 3D ENERGY CARD - V1.8.1
  * Features: 3D Energy Flow Visualization with Animated Wires
  */
 
@@ -9,7 +9,7 @@ import {
   css,
 } from "https://unpkg.com/lit-element@2.4.0/lit-element.js?module";
 
-const CARD_VERSION = "1.8.0";
+const CARD_VERSION = "1.8.1";
 
 // Load Google Fonts
 if (!document.querySelector('link[href*="fonts.googleapis.com/css2?family=Orbitron"]')) {
@@ -47,7 +47,6 @@ class NLK3DEnergyCard extends LitElement {
       max_power: 5000, buy_price: 3000, sell_price: 2000, currency: "đ", language: "vi", battery_invert: false,
       show_self_sufficiency: true,
       battery_capacity: 10,
-      card_size: "normal",
       flow_style: "dashed",
       offgrid_grid_threshold: 1,
       offgrid_min_power: 0,
@@ -63,13 +62,8 @@ class NLK3DEnergyCard extends LitElement {
 
   static getConfigElement() { return document.createElement("nlk-3d-energy-card-editor"); }
 
-  // Masonry layout hint for HA. Roughly height / 50px per row.
-  getCardSize() {
-    const size = this.config?.card_size;
-    if (size === 'compact') return 7;
-    if (size === 'large') return 11;
-    return 9;
-  }
+  // Masonry layout hint for HA. Card is a fixed 420px tall, ~50px per row.
+  getCardSize() { return 9; }
 
   setConfig(config) {
     if (!config.entities) throw new Error("Please check config via Editor.");
@@ -118,7 +112,6 @@ class NLK3DEnergyCard extends LitElement {
         box-shadow: var(--shadow-soft);
         backdrop-filter: blur(18px);
       }
-      :host([data-size="compact"]) { --card-height: 320px; } :host([data-size="large"]) { --card-height: 520px; }
       @media (max-width: 400px) { ha-card { height: calc(var(--card-height, 420px) - 40px); } }
       .bg-grid {
         position: absolute;
@@ -390,7 +383,7 @@ class NLK3DEnergyCard extends LitElement {
     };
 
     return html`
-      <ha-card data-size="${this.config.card_size || 'normal'}">
+      <ha-card>
         <div class="bg-grid"></div>
         <div class="scene" id="scene">
           
