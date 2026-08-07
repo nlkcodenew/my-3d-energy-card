@@ -1,5 +1,5 @@
 /*
- * NLK 3D ENERGY CARD - V1.8.1
+ * NLK 3D ENERGY CARD - V1.9.0
  * Features: 3D Energy Flow Visualization with Animated Wires
  */
 
@@ -9,7 +9,7 @@ import {
   css,
 } from "https://unpkg.com/lit-element@2.4.0/lit-element.js?module";
 
-const CARD_VERSION = "1.8.1";
+const CARD_VERSION = "1.9.0";
 
 // Load Google Fonts
 if (!document.querySelector('link[href*="fonts.googleapis.com/css2?family=Orbitron"]')) {
@@ -76,31 +76,49 @@ class NLK3DEnergyCard extends LitElement {
 
   static get styles() {
     return css`
+      /* Base surfaces.
+       * These use only widely-supported CSS so the card still renders on older
+       * WebViews - notably the Android tablets often used as wall panels, where
+       * color-mix() is unsupported and would otherwise make these variables
+       * invalid, stripping the card's background and borders entirely.
+       * The color-mix() versions are layered on top in @supports below. */
       :host {
         display: block;
         padding: 0;
         --bg-card: var(--ha-card-background, var(--card-background-color, #141414));
-        --surface-card: linear-gradient(
-          180deg,
-          color-mix(in srgb, var(--bg-card) 92%, white 8%) 0%,
-          color-mix(in srgb, var(--bg-card) 96%, black 4%) 100%
-        );
-        --surface-node: linear-gradient(
-          180deg,
-          color-mix(in srgb, var(--bg-card) 94%, white 6%) 0%,
-          color-mix(in srgb, var(--bg-card) 88%, black 12%) 100%
-        );
-        --surface-inverter: radial-gradient(
-          circle at 30% 30%,
-          color-mix(in srgb, var(--bg-card) 84%, white 16%),
-          color-mix(in srgb, var(--bg-card) 80%, black 20%)
-        );
+        --surface-card: linear-gradient(180deg, rgba(255,255,255,0.08) 0%, rgba(0,0,0,0.04) 100%), var(--bg-card);
+        --surface-node: linear-gradient(180deg, rgba(255,255,255,0.06) 0%, rgba(0,0,0,0.12) 100%), var(--bg-card);
+        --surface-inverter: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.16), rgba(0,0,0,0.20)), var(--bg-card);
         --text-primary: var(--primary-text-color, #fff);
         --text-secondary: var(--secondary-text-color, #888);
-        --border-color: color-mix(in srgb, var(--divider-color, rgba(255,255,255,0.1)) 78%, transparent 22%);
-        --glass-highlight: color-mix(in srgb, var(--text-primary) 10%, transparent 90%);
+        --border-color: var(--divider-color, rgba(255,255,255,0.1));
         --shadow-soft: 0 16px 36px rgba(15, 23, 42, 0.14);
         --shadow-strong: 0 22px 48px rgba(15, 23, 42, 0.20);
+      }
+
+      /* Preferred surfaces: color-mix() blends against the actual theme
+       * background, which tracks HA light/dark themes more accurately than the
+       * translucent overlays above. Browsers without color-mix() skip this
+       * block and keep the fallbacks. */
+      @supports (background: color-mix(in srgb, red 50%, blue)) {
+        :host {
+          --surface-card: linear-gradient(
+            180deg,
+            color-mix(in srgb, var(--bg-card) 92%, white 8%) 0%,
+            color-mix(in srgb, var(--bg-card) 96%, black 4%) 100%
+          );
+          --surface-node: linear-gradient(
+            180deg,
+            color-mix(in srgb, var(--bg-card) 94%, white 6%) 0%,
+            color-mix(in srgb, var(--bg-card) 88%, black 12%) 100%
+          );
+          --surface-inverter: radial-gradient(
+            circle at 30% 30%,
+            color-mix(in srgb, var(--bg-card) 84%, white 16%),
+            color-mix(in srgb, var(--bg-card) 80%, black 20%)
+          );
+          --border-color: color-mix(in srgb, var(--divider-color, rgba(255,255,255,0.1)) 78%, transparent 22%);
+        }
       }
       ha-card {
         background: var(--surface-card);
@@ -330,12 +348,17 @@ class NLK3DEnergyCard extends LitElement {
       : (this._hasState(E.load) ? this._getState(E.load) : Math.abs(solarP + gridP + batP));
     // --------------------------------------------------------------------
 
-    // Self-sufficiency Logic
-    let selfSufficiency = 0;
-    const loadDaily = this._getState(E.load_daily);
-    const gridBuyDaily = this._getState(E.grid_buy_daily);
-    if (loadDaily > 0) {
-      selfSufficiency = Math.max(0, Math.min(100, ((loadDaily - gridBuyDaily) / loadDaily) * 100));
+    // Self-sufficiency Logic.
+    // Both entities are required. Previously a missing grid_buy_daily read as
+    // 0, making the formula (load - 0) / load report a flat 100% - which looks
+    // like a real measurement rather than missing data. Show "--" instead.
+    let selfSufficiency = null;
+    if (this._hasState(E.load_daily) && this._hasState(E.grid_buy_daily)) {
+      const loadDaily = this._getState(E.load_daily);
+      const gridBuyDaily = this._getState(E.grid_buy_daily);
+      if (loadDaily > 0) {
+        selfSufficiency = Math.max(0, Math.min(100, ((loadDaily - gridBuyDaily) / loadDaily) * 100));
+      }
     }
     const showSelf = this.config.show_self_sufficiency !== false;
 
@@ -454,7 +477,7 @@ class NLK3DEnergyCard extends LitElement {
             <ha-icon icon="mdi:solar-power"></ha-icon>
             <span class="inv-label">${t('inverter')}</span>
             <span class="inv-power">${E.inverter_temp ? this._getDisplay(E.inverter_temp) : ''}</span>
-            ${showSelf ? html`<span class="self-sufficiency">${t('self')}: ${selfSufficiency.toFixed(0)}%</span>` : ''}
+            ${showSelf ? html`<span class="self-sufficiency">${t('self')}: ${selfSufficiency === null ? '--' : `${selfSufficiency.toFixed(0)}%`}</span>` : ''}
           </div>
         </div>
       </ha-card>

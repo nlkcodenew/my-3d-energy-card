@@ -1,7 +1,7 @@
 # NLK 3D Energy Card
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-1.8.1-blue?style=for-the-badge" alt="Version">
+  <img src="https://img.shields.io/badge/version-1.9.0-blue?style=for-the-badge" alt="Version">
   <img src="https://img.shields.io/badge/HACS-Default-orange?style=for-the-badge" alt="HACS">
   <img src="https://img.shields.io/badge/Home%20Assistant-2024.1+-green?style=for-the-badge" alt="HA">
 </p>
@@ -218,6 +218,21 @@ The inverter circle automatically changes color based on temperature:
 ---
 
 ## 📝 Changelog
+
+### v1.9.0 (2026-08-07)
+- 🛡️ **`color-mix()` fallback** - the card's surface colours are now declared twice: plain
+  CSS first, then the `color-mix()` versions inside `@supports`. Previously, browsers without
+  `color-mix()` (older Android WebViews, common on wall-panel tablets) treated those variables as
+  invalid and lost the card's background and borders entirely. Modern browsers are unaffected.
+- 🐛 **Self-sufficiency no longer reports a false 100%** - if `grid_buy_daily` was missing or
+  unavailable it read as `0`, so `(load - 0) / load` displayed a flat **100%** that looked like a
+  real measurement. It now shows `--` when either required entity is missing.
+- 🧹 Removed the unused `--glass-highlight` CSS variable
+
+> If you have both `load_daily` and `grid_buy_daily` configured, your self-sufficiency figure is
+> unchanged.
+>
+> Nếu bạn đã cấu hình cả `load_daily` và `grid_buy_daily`, chỉ số tự cấp của bạn không thay đổi.
 
 ### v1.8.1 (2026-08-07)
 - 🗑️ **Removed `card_size`** - same story as `compact_mode` in v1.8.0: the option had never worked
