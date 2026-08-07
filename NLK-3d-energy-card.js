@@ -1,5 +1,5 @@
 /*
- * NLK 3D ENERGY CARD - V1.7.3
+ * NLK 3D ENERGY CARD - V1.8.0
  * Features: 3D Energy Flow Visualization with Animated Wires
  */
 
@@ -9,7 +9,7 @@ import {
   css,
 } from "https://unpkg.com/lit-element@2.4.0/lit-element.js?module";
 
-const CARD_VERSION = "1.7.3";
+const CARD_VERSION = "1.8.0";
 
 // Load Google Fonts
 if (!document.querySelector('link[href*="fonts.googleapis.com/css2?family=Orbitron"]')) {
@@ -49,7 +49,6 @@ class NLK3DEnergyCard extends LitElement {
       battery_capacity: 10,
       card_size: "normal",
       flow_style: "dashed",
-      compact_mode: false,
       offgrid_grid_threshold: 1,
       offgrid_min_power: 0,
       colors: {},
@@ -215,11 +214,6 @@ class NLK3DEnergyCard extends LitElement {
       .status-import { background: rgba(255, 0, 85, 0.2); color: #ff0055; }
       .status-export { background: rgba(0, 243, 255, 0.2); color: #00f3ff; }
       .status-offgrid { background: rgba(255, 165, 0, 0.22); color: #ffa500; }
-      
-      /* Compact mode */
-      :host([data-compact]) .sub-info { display: none; }
-      :host([data-compact]) .node { padding: 8px; }
-      :host([data-compact]) .inverter .self-sufficiency { display: none; }
       
       /* SVG & NEW CSS ANIMATIONS */
       svg.connections { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 3; overflow: visible; }
@@ -395,11 +389,8 @@ class NLK3DEnergyCard extends LitElement {
       return `stroke: ${color}; --flow-duration: ${duration}s; opacity: 1; ${reverse ? 'animation-direction: reverse;' : ''}`;
     };
 
-    // Compact mode
-    const isCompact = this.config.compact_mode || false;
-
     return html`
-      <ha-card data-size="${this.config.card_size || 'normal'}" ?data-compact=${isCompact}>
+      <ha-card data-size="${this.config.card_size || 'normal'}">
         <div class="bg-grid"></div>
         <div class="scene" id="scene">
           
@@ -580,7 +571,6 @@ class NLK3DEnergyCardEditor extends LitElement {
       ${this._i("Max Power (W)", "max_power", this.config.max_power, false, "number")}
       <div class="row"><label>Language</label><select @change=${(e) => { const ev = new Event("config-changed", { bubbles: true, composed: true }); ev.detail = { config: { ...this.config, language: e.target.value } }; this.dispatchEvent(ev) }}><option value="vi" ?selected=${this.config.language === 'vi'}>Tiếng Việt</option><option value="en" ?selected=${this.config.language === 'en'}>English</option></select></div>
       <div class="row"><label><input type="checkbox" .checked=${this.config.show_self_sufficiency !== false} @change=${(e) => { const ev = new Event("config-changed", { bubbles: true, composed: true }); ev.detail = { config: { ...this.config, show_self_sufficiency: e.target.checked } }; this.dispatchEvent(ev) }}> Show Self-Sufficiency %</label></div>
-      <div class="row"><label><input type="checkbox" .checked=${this.config.compact_mode || false} @change=${(e) => { const ev = new Event("config-changed", { bubbles: true, composed: true }); ev.detail = { config: { ...this.config, compact_mode: e.target.checked } }; this.dispatchEvent(ev) }}> Compact Mode</label></div>
       
       <h3>💰 Cost</h3>
       <div class="inline">${this._i("Buy Price", "buy_price", this.config.buy_price, false, "number")}${this._i("Sell Price", "sell_price", this.config.sell_price, false, "number")}</div>

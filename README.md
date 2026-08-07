@@ -1,7 +1,7 @@
 # NLK 3D Energy Card
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-1.7.3-blue?style=for-the-badge" alt="Version">
+  <img src="https://img.shields.io/badge/version-1.8.0-blue?style=for-the-badge" alt="Version">
   <img src="https://img.shields.io/badge/HACS-Default-orange?style=for-the-badge" alt="HACS">
   <img src="https://img.shields.io/badge/Home%20Assistant-2024.1+-green?style=for-the-badge" alt="HA">
 </p>
@@ -21,7 +21,6 @@ Thẻ năng lượng 3D đẹp mắt cho Home Assistant với dòng chảy năng
 | 🌡️ **Temperature Colors** | Inverter color changes with temperature (10°C→70°C) / Màu inverter thay đổi theo nhiệt độ |
 | 🎨 **Color Editor** | Visual color pickers in editor / Chọn màu trực quan |
 | 🔋 **Battery Display** | Large SoC %, time remaining / Hiển thị % pin lớn, thời gian còn lại |
-| 📐 **Compact Mode** | Hide sub-info for cleaner look / Ẩn thông tin phụ |
 | 💡 **Node Pulse** | Nodes pulse when high power / Node nhấp nháy khi công suất cao |
 | 🌐 **Multi-Language** | English & Vietnamese / Hỗ trợ tiếng Anh & Việt |
 | 📱 **Responsive** | Better fonts on mobile / Font tối ưu trên mobile |
@@ -99,7 +98,6 @@ type: custom:nlk-3d-energy-card
 max_power: 5000
 language: vi  # en | vi
 show_self_sufficiency: true
-compact_mode: false
 battery_invert: false
 battery_capacity: 10  # kWh
 flow_style: dashed  # dashed | dots
@@ -192,7 +190,7 @@ mức sàn. **Nên để 0** — nếu đặt `50`, khi mất điện mà nhà c
 sensor sai lệch.
 
 When the off-grid source is active, an orange **⚠ Off-grid / Mất lưới** badge appears on the Load
-node (visible even in compact mode) so you always know which sensor is being displayed.
+node, so you always know which sensor is being displayed.
 
 ---
 
@@ -220,6 +218,18 @@ The inverter circle automatically changes color based on temperature:
 ---
 
 ## 📝 Changelog
+
+### v1.8.0 (2026-08-07)
+- 🗑️ **Removed Compact Mode** - the `compact_mode` option and its editor checkbox are gone. The
+  option had never worked in any released version: its CSS was scoped to `:host([data-compact])`
+  while the attribute was set on the inner `<ha-card>`, so the selector never matched. Rather than
+  make it suddenly start hiding rows for everyone who had ticked the box, it is removed entirely.
+
+> **Existing configs are safe.** A leftover `compact_mode: true` in your YAML is simply ignored —
+> no error, no visual change. You can delete the line at your convenience.
+>
+> **Config cũ vẫn an toàn.** Nếu YAML của bạn còn `compact_mode: true` thì nó chỉ bị bỏ qua —
+> không lỗi, không đổi hiển thị. Bạn có thể xoá dòng đó khi nào rảnh.
 
 ### v1.7.3 (2026-08-07)
 Internal cleanup only — **no visual or behavioural changes**. The rendered HTML template is
@@ -256,7 +266,7 @@ byte-identical to v1.7.2; the only CSS removed was an unused animation.
   `load` to `load_offgrid` during a blackout, for inverters that report an unreliable
   `load_power` when off-grid
 - ⚙️ **New options** - `offgrid_grid_threshold` (default `1` W) and `offgrid_min_power` (default `0`, disabled)
-- ⚠️ **Off-grid badge** - Load node shows which source is active; stays visible in compact mode
+- ⚠️ **Off-grid badge** - Load node shows which source is active
 - 🐛 **Fixed** - A genuine `0 W` load reading no longer triggers the estimated-sum fallback
 - 🐛 **Fixed** - Editor no longer writes `NaN` into the config when a number field is cleared
 - 🐛 **Fixed** - Load node tap now opens the sensor actually being displayed
