@@ -1,7 +1,7 @@
 # NLK 3D Energy Card
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-1.7.1-blue?style=for-the-badge" alt="Version">
+  <img src="https://img.shields.io/badge/version-1.7.2-blue?style=for-the-badge" alt="Version">
   <img src="https://img.shields.io/badge/HACS-Default-orange?style=for-the-badge" alt="HACS">
   <img src="https://img.shields.io/badge/Home%20Assistant-2024.1+-green?style=for-the-badge" alt="HA">
 </p>
@@ -221,15 +221,25 @@ The inverter circle automatically changes color based on temperature:
 
 ## 📝 Changelog
 
-### v1.7.1 (2026-08-07)
-- 🐛 **Fixed** - Sub-info rows (PV1/PV2, Today, Buy/Sell, Charge/Discharge) disappeared from all
-  nodes when `compact_mode` was enabled. A CSS rule added in v1.7.0 for the off-grid badge was
-  hiding them unconditionally
-- 🐛 **Fixed** - `compact_mode` and `card_size` now actually work. Both were scoped to
-  `:host([data-...])` while the attribute is set on the inner `<ha-card>`, so neither had any
-  effect before
+### v1.7.2 (2026-08-07)
+- ↩️ **Reverted all compact-mode / card_size CSS changes** from v1.7.0 and v1.7.1. Both versions
+  could hide the sub-info rows (PV1/PV2, Today, Buy/Sell, Charge/Discharge) on every node. The
+  CSS for these two options is now byte-identical to v1.6.2, so display behaviour matches v1.6.2
+  exactly
+- ✅ This release contains **only** the off-grid load feature and its bug fixes — no styling changes
 
-### v1.7.0 (2026-08-07)
+> `compact_mode` and `card_size` remain non-functional, exactly as in v1.6.2 and earlier. This is
+> a pre-existing issue that will be addressed separately, as an opt-in change.
+
+### v1.7.1 (2026-08-07) — ⚠️ do not use
+- Attempted to fix the v1.7.0 regression, but also made `compact_mode` functional for the first
+  time, which hid sub-info rows for anyone who had that option enabled. Superseded by v1.7.2
+
+### v1.7.0 (2026-08-07) — ⚠️ do not use
+- Introduced the off-grid load feature, but a CSS rule for the off-grid badge hid sub-info rows
+  when `compact_mode` was enabled. Superseded by v1.7.2
+
+### Off-grid Load Source (introduced v1.7.0, stable from v1.7.2)
 - 🔌 **Off-grid Load Source** - New `load_offgrid` entity. The card automatically switches from
   `load` to `load_offgrid` during a blackout, for inverters that report an unreliable
   `load_power` when off-grid

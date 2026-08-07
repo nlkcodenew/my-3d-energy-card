@@ -1,5 +1,5 @@
 /*
- * NLK 3D ENERGY CARD - V1.7.1
+ * NLK 3D ENERGY CARD - V1.7.2
  * Features: 3D Energy Flow Visualization with Animated Wires
  */
 
@@ -9,7 +9,7 @@ import {
   css,
 } from "https://unpkg.com/lit-element@2.4.0/lit-element.js?module";
 
-const CARD_VERSION = "1.7.1";
+const CARD_VERSION = "1.7.2";
 
 // Load Google Fonts
 if (!document.querySelector('link[href*="fonts.googleapis.com/css2?family=Orbitron"]')) {
@@ -111,8 +111,7 @@ class NLK3DEnergyCard extends LitElement {
         box-shadow: var(--shadow-soft);
         backdrop-filter: blur(18px);
       }
-      /* Same fix as compact mode: attribute lives on ha-card, not :host. */
-      ha-card[data-size="compact"] { --card-height: 320px; } ha-card[data-size="large"] { --card-height: 520px; }
+      :host([data-size="compact"]) { --card-height: 320px; } :host([data-size="large"]) { --card-height: 520px; }
       @media (max-width: 400px) { ha-card { height: calc(var(--card-height, 420px) - 40px); } }
       .bg-grid {
         position: absolute;
@@ -213,19 +212,10 @@ class NLK3DEnergyCard extends LitElement {
       .main-val.flash { animation: val-flash 0.5s ease-out; }
       @keyframes val-flash { 0% { filter: brightness(2); transform: scale(1.1); } 100% { filter: brightness(1); transform: scale(1); } }
       
-      /* Compact mode.
-       * NOTE: data-compact / data-size are set on <ha-card> inside the shadow
-       * root, NOT on the host element. The previous :host([data-compact])
-       * selectors therefore never matched, which silently disabled both
-       * compact mode and card_size. Scope them to ha-card[...] instead. */
-      ha-card[data-compact] .sub-info { display: none; }
-      ha-card[data-compact] .node { padding: 8px; }
-      ha-card[data-compact] .inverter .self-sufficiency { display: none; }
-      /* The off-grid warning is a safety indicator: it must survive compact
-       * mode. Re-show just the badge (and its wrapper) without bringing back
-       * the other sub-rows. */
-      ha-card[data-compact] .sub-info:has(.status-offgrid) { display: flex; margin-top: 4px; padding-top: 4px; }
-      ha-card[data-compact] .sub-info:has(.status-offgrid) > *:not(.status-offgrid) { display: none; }
+      /* Compact mode */
+      :host([data-compact]) .sub-info { display: none; }
+      :host([data-compact]) .node { padding: 8px; }
+      :host([data-compact]) .inverter .self-sufficiency { display: none; }
       
       /* SVG & NEW CSS ANIMATIONS */
       svg.connections { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 3; overflow: visible; }
